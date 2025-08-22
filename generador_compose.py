@@ -9,6 +9,8 @@ def define_server(file):
     "    environment:\n"
     "      - PYTHONUNBUFFERED=1\n"
     "      - LOGGING_LEVEL=DEBUG\n"
+    "    volumes:\n"
+    "      - ./config.ini:/config.ini\n"
     "    networks:\n"
     "      - testing_net\n"
     "\n"
