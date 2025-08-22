@@ -25,6 +25,8 @@ def define_client(file, number_of_client):
     "    environment:\n"
     f"      - CLI_ID={number_of_client}\n"
     "      - CLI_LOG_LEVEL=DEBUG\n"
+    "    volumes:\n"
+    "      - ./config.yaml:/config.yaml\n"
     "    networks:\n"
     "      - testing_net\n"
     "    depends_on:\n"
