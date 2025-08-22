@@ -10,13 +10,15 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
   - [Índice](#índice)
   - [Documentación](#documentación)
     - [Ejercicio N°1](#ejercicio-n1)
+    - [Ejercicio N°2](#ejercicio-n2)
+      - [Referencias](#referencias)
   - [Instrucciones de uso](#instrucciones-de-uso)
     - [Servidor](#servidor)
     - [Cliente](#cliente)
     - [Ejemplo](#ejemplo)
   - [Parte 1: Introducción a Docker](#parte-1-introducción-a-docker)
     - [Ejercicio N°1:](#ejercicio-n1-1)
-    - [Ejercicio N°2:](#ejercicio-n2)
+    - [Ejercicio N°2:](#ejercicio-n2-1)
     - [Ejercicio N°3:](#ejercicio-n3)
     - [Ejercicio N°4:](#ejercicio-n4)
   - [Parte 2: Repaso de Comunicaciones](#parte-2-repaso-de-comunicaciones)
@@ -43,6 +45,32 @@ El nombre del archivo debe incluir su extensión y el número de clientes debe s
 Respecto a la implementación del código, contamos con una función `create_docker_compose` que recibe el nombre del archivo (`filename`) y el número de clientes (`number_of_clients`). La misma escribe sobre el archivo las definiciones necesarias, luego se llama a una serie de funciones para definir los distintos servicios que tiene nuestro compose.
 
 La primera es `define_server`, la cual define el servicio del servidor. La segunda es `define_client`, que define el cliente; notemos que recibe como uno de sus parámetros el número de cliente que corresponde definir. Por último, `define_network` define la red de nuestro compose. Es importante notar que todas las funciones reciben el archivo donde se escribe el compose.
+
+### Ejercicio N°2
+
+En este ejercicio solo hubo modificaciones en el archivo `generador_compose.py` respecto al [Ejercicio N°1](#ejercicio-n1). La forma de utilizar `generar-compose.sh` sigue siendo la misma que en el ejercicio anterior. En cuanto a la implementación de este ejercicio, para evitar la reconstrucción de la imagen cada vez que cambian los archivos de configuración, se utilizó el mecanismo de volúmenes.
+
+Los volúmenes que definimos fueron:
+
+- `./server/config.ini:/config.ini:ro` para el servidor
+- `./client/config.yaml:/config.yaml:ro` para el cliente
+
+Recordemos que los volúmenes son de la forma `host_path:container_path[:ro]`, donde `host_path` corresponde a un path de la máquina que hostea el contenedor, mientras que `container_path` corresponde a un path dentro del contenedor. Notemos la presencia del parámetro `ro` al final del volumen, esto indica que el archivo es solo de lectura y no se puede modificar dentro del mismo. ¹
+
+Por último, notemos que eliminamos de los environments lo siguiente:
+
+- `LOGGING_LEVEL=DEBUG` para el servidor
+- `CLI_LOG_LEVEL=DEBUG` para el cliente
+
+Esto se debe a que, tanto el servidor como el cliente leen primero las variables de entorno y luego los archivos de configuración, pero siempre priorizando los valores definidos en las variables de entorno. En el caso del servidor, esto se encuentra en el `main.py`, el cual configura el objeto `ConfigParser` con las variables de entorno. Luego, el valor para cada parámetro se elige entre las variables de entorno o el `ConfigParser`, pero siempre priorizando las variables de entorno. ²
+
+En el caso del cliente, este usa una librería llamada [viper](https://github.com/spf13/viper), la cual tiene un comentario que indica que existe una "estrategia" de priorización en la cual las variables de entorno tienen mayor prioridad que un archivo de configuración. ³
+
+#### Referencias
+
+1. “Volumes.” (2025, July). Docker Documentation. Retrieved August 22, 2025, from [https://docs.docker.com/engine/storage/volumes](https://docs.docker.com/engine/storage/volumes)
+2. FIUBA - Sistemas Distribuidos (TA050) (Cátedra Roca). (n.d.). tp0-base/server/main.py at master · 7574-sistemas-distribuidos/tp0-base. GitHub. Retrieved August 22, 2025, from [https://github.com/7574-sistemas-distribuidos/tp0-base/blob/master/server/main.py#L9-L34](https://github.com/7574-sistemas-distribuidos/tp0-base/blob/master/server/main.py#L9-L34)
+3. Spf. (n.d.). viper/viper.go at master · spf13/viper. GitHub. Retrieved August 22, 2025, from [https://github.com/spf13/viper/blob/master/viper.go#L107-L141](https://github.com/spf13/viper/blob/master/viper.go#L107-L141)
 
 ## Instrucciones de uso
 El repositorio cuenta con un **Makefile** que incluye distintos comandos en forma de targets. Los targets se ejecutan mediante la invocación de:  **make \<target\>**. Los target imprescindibles para iniciar y detener el sistema son **docker-compose-up** y **docker-compose-down**, siendo los restantes targets de utilidad para el proceso de depuración.
