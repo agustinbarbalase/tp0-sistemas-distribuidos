@@ -6,4 +6,15 @@ MESSAGE_FOR_SERVER="You talking to me?" # Travis Bickle (Robert De Niro) - Taxi 
 SERVER_ADDRESS="server"
 SERVER_PORT="12345"
 
-docker run --network=$NETWORK_NAME --rm $DOCKER_IMAGE sh -c "echo '$MESSAGE_FOR_SERVER' | nc $SERVER_ADDRESS $SERVER_PORT"
+RESULT=$(docker run \
+  --network=$NETWORK_NAME \
+  --rm \
+  $DOCKER_IMAGE \
+  sh -c "echo '$MESSAGE_FOR_SERVER' | nc $SERVER_ADDRESS $SERVER_PORT" 2> /dev/null)
+
+if [ "$RESULT" == "$MESSAGE_FOR_SERVER" ]; then
+  echo "action: test_echo_server | result: success"
+else
+  echo "action: test_echo_server | result: fail"
+  exit 1
+fi
