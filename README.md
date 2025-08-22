@@ -86,11 +86,13 @@ Hay que tener en cuenta que el servidor vive dentro de una `network` que se crea
 
 El comando que ejecuta el script `validar-echo-server.sh` es el siguiente:
 
-`docker run \
+```bash
+docker run \
   --network=$NETWORK_NAME \
   --rm \
   $DOCKER_IMAGE \
   sh -c "echo '$MESSAGE_FOR_SERVER' | nc $SERVER_ADDRESS $SERVER_PORT"`
+```
 
 Ahí corremos el contenedor con imagen `$DOCKER_IMAGE`, que corresponde a `busybox`, luego seteamos la network con el flag `--network=$NETWORK_NAME`. El flag `--rm` es para que, una vez termine la ejecución, se remueva el contenedor. El comando que ejecutará el contenedor es: `sh -c "echo '$MESSAGE_FOR_SERVER' | nc $SERVER_ADDRESS $SERVER_PORT"`.
 
