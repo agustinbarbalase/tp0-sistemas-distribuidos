@@ -30,5 +30,16 @@ def define_client(file, number_of_client):
     "\n"
   )
 
+def define_network(file):
+  file.write(
+    "networks:\n"
+    "  testing_net:\n"
+    "    ipam:\n"
+    "      driver: default\n"
+    "      config:\n"
+    "        - subnet: 172.25.125.0/24\n"
+    "\n"
+  )
+
 if __name__ == "__main__":
   pass
