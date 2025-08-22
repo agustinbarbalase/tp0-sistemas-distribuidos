@@ -1,4 +1,4 @@
-
+import sys
 
 def define_server(file):
   file.write(
@@ -54,5 +54,11 @@ def create_docker_compose(filename, number_of_clients):
     
     define_network(file)
 
+def main():
+  filename = sys.argv[1]
+  number_of_clients = int(sys.argv[2])
+
+  create_docker_compose(filename, number_of_clients)
+
 if __name__ == "__main__":
-  create_docker_compose("docker-compose.yml", 1)
+  main()
