@@ -12,7 +12,7 @@ RESULT=$(docker run \
   $DOCKER_IMAGE \
   sh -c "echo '$MESSAGE_FOR_SERVER' | nc $SERVER_ADDRESS $SERVER_PORT" 2> /dev/null)
 
-if [ "$RESULT" == "$MESSAGE_FOR_SERVER" ]; then
+if [ "$RESULT" = "$MESSAGE_FOR_SERVER" ]; then
   echo "action: test_echo_server | result: success"
 else
   echo "action: test_echo_server | result: fail"
