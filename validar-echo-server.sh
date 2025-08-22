@@ -10,7 +10,7 @@ RESULT=$(docker run \
   --network=$NETWORK_NAME \
   --rm \
   $DOCKER_IMAGE \
-  sh -c "echo '$MESSAGE_FOR_SERVER' | nc $SERVER_ADDRESS $SERVER_PORT" 2> /dev/null)
+  sh -c "echo '$MESSAGE_FOR_SERVER' | nc $SERVER_ADDRESS $SERVER_PORT")
 
 if [ "$RESULT" = "$MESSAGE_FOR_SERVER" ]; then
   echo "action: test_echo_server | result: success"
