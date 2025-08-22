@@ -41,5 +41,19 @@ def define_network(file):
     "\n"
   )
 
+def create_docker_compose(filename, number_of_clients):
+  with open(filename, "w") as file:
+    file.write(
+      "name: 'tp0'\n"
+      "services:\n"
+    )
+    
+    define_server(file)
+    
+    for i in range(1, number_of_clients + 1):
+      define_client(file, i)
+    
+    define_network(file)
+
 if __name__ == "__main__":
-  pass
+  create_docker_compose("docker-compose.yml", 3)
