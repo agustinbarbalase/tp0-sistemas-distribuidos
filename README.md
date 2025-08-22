@@ -8,12 +8,14 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
 
 - [TP0: Docker + Comunicaciones + Concurrencia](#tp0-docker--comunicaciones--concurrencia)
   - [Índice](#índice)
+  - [Documentación](#documentación)
+    - [Ejercicio N°1](#ejercicio-n1)
   - [Instrucciones de uso](#instrucciones-de-uso)
     - [Servidor](#servidor)
     - [Cliente](#cliente)
     - [Ejemplo](#ejemplo)
   - [Parte 1: Introducción a Docker](#parte-1-introducción-a-docker)
-    - [Ejercicio N°1:](#ejercicio-n1)
+    - [Ejercicio N°1:](#ejercicio-n1-1)
     - [Ejercicio N°2:](#ejercicio-n2)
     - [Ejercicio N°3:](#ejercicio-n3)
     - [Ejercicio N°4:](#ejercicio-n4)
@@ -27,6 +29,20 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
   - [Parte 3: Repaso de Concurrencia](#parte-3-repaso-de-concurrencia)
     - [Ejercicio N°8:](#ejercicio-n8)
   - [Condiciones de Entrega](#condiciones-de-entrega)
+
+## Documentación
+
+### Ejercicio N°1
+
+Tal como indica el ejercicio, el comando para ejecutar el script es:
+
+`./generar-compose.sh <nombre_del_archivo> <numero_de_clientes>`
+
+El nombre del archivo debe incluir su extensión y el número de clientes debe ser, obviamente, un número entero no negativo. Por otro lado, existe manejo de errores para el caso en que se pase una cantidad distinta a la requerida de parámetros.
+
+Respecto a la implementación del código, contamos con una función `create_docker_compose` que recibe el nombre del archivo (`filename`) y el número de clientes (`number_of_clients`). La misma escribe sobre el archivo las definiciones necesarias, luego se llama a una serie de funciones para definir los distintos servicios que tiene nuestro compose.
+
+La primera es `define_server`, la cual define el servicio del servidor. La segunda es `define_client`, que define el cliente; notemos que recibe como uno de sus parámetros el número de cliente que corresponde definir. Por último, `define_network` define la red de nuestro compose. Es importante notar que todas las funciones reciben el archivo donde se escribe el compose.
 
 ## Instrucciones de uso
 El repositorio cuenta con un **Makefile** que incluye distintos comandos en forma de targets. Los targets se ejecutan mediante la invocación de:  **make \<target\>**. Los target imprescindibles para iniciar y detener el sistema son **docker-compose-up** y **docker-compose-down**, siendo los restantes targets de utilidad para el proceso de depuración.
