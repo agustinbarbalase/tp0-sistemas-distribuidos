@@ -62,6 +62,11 @@ def main():
 
     filename = sys.argv[1]
     number_of_clients = int(sys.argv[2])
+
+    if number_of_clients < 0:
+      print("number_of_clients must be not negative")
+      sys.exit(1)
+
     create_docker_compose(filename, number_of_clients)
 
   except ValueError:
