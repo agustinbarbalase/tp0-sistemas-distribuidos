@@ -12,6 +12,8 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
     - [Ejercicio N°1](#ejercicio-n1)
     - [Ejercicio N°2](#ejercicio-n2)
       - [Referencias](#referencias)
+    - [Ejercicio N°3](#ejercicio-n3)
+      - [Referencias](#referencias-1)
   - [Instrucciones de uso](#instrucciones-de-uso)
     - [Servidor](#servidor)
     - [Cliente](#cliente)
@@ -19,7 +21,7 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
   - [Parte 1: Introducción a Docker](#parte-1-introducción-a-docker)
     - [Ejercicio N°1:](#ejercicio-n1-1)
     - [Ejercicio N°2:](#ejercicio-n2-1)
-    - [Ejercicio N°3:](#ejercicio-n3)
+    - [Ejercicio N°3:](#ejercicio-n3-1)
     - [Ejercicio N°4:](#ejercicio-n4)
   - [Parte 2: Repaso de Comunicaciones](#parte-2-repaso-de-comunicaciones)
     - [Ejercicio N°5:](#ejercicio-n5)
@@ -71,6 +73,37 @@ En el caso del cliente, este usa una librería llamada [viper](https://github.co
 1. “Volumes.” (2025, July). Docker Documentation. Retrieved August 22, 2025, from [https://docs.docker.com/engine/storage/volumes](https://docs.docker.com/engine/storage/volumes)
 2. FIUBA - Sistemas Distribuidos (TA050) (Cátedra Roca). (n.d.). tp0-base/server/main.py at master · 7574-sistemas-distribuidos/tp0-base. GitHub. Retrieved August 22, 2025, from [https://github.com/7574-sistemas-distribuidos/tp0-base/blob/master/server/main.py#L9-L34](https://github.com/7574-sistemas-distribuidos/tp0-base/blob/master/server/main.py#L9-L34)
 3. Spf. (n.d.). viper/viper.go at master · spf13/viper. GitHub. Retrieved August 22, 2025, from [https://github.com/spf13/viper/blob/master/viper.go#L107-L141](https://github.com/spf13/viper/blob/master/viper.go#L107-L141)
+
+### Ejercicio N°3
+
+Para este ejercicio creamos el archivo `validar-echo-server.sh`, el cual se ejecuta de la siguiente manera:
+
+`./validar-echo-server.sh`
+
+El mismo corre una imagen de `busybox`, la cual provee implementaciones simplificadas de varias utilidades comunes de Linux/UNIX, como por ejemplo: `nc` (netcat), `echo` y `sh`. Estos nos permiten chequear la conectividad con el servidor. ¹
+
+Hay que tener en cuenta que el servidor vive dentro de una `network` que se crea con el Docker Compose, por lo cual, cuando corramos el contenedor con `docker run`, debemos proveer esta `network` generada por el Docker Compose. Por suerte, existe el flag `--network=<nombre_de_network>` para el comando `docker run`, con lo cual, cuando corramos el comando netcat en el contenedor, sabrá cuál es la dirección del `server` y su puerto, sin exponer los puertos hacie el host. ²
+
+El comando que ejecuta el script `validar-echo-server.sh` es el siguiente:
+
+`docker run \
+  --network=$NETWORK_NAME \
+  --rm \
+  $DOCKER_IMAGE \
+  sh -c "echo '$MESSAGE_FOR_SERVER' | nc $SERVER_ADDRESS $SERVER_PORT"`
+
+Ahí corremos el contenedor con imagen `$DOCKER_IMAGE`, que corresponde a `busybox`, luego seteamos la network con el flag `--network=$NETWORK_NAME`. El flag `--rm` es para que, una vez termine la ejecución, se remueva el contenedor. El comando que ejecutará el contenedor es: `sh -c "echo '$MESSAGE_FOR_SERVER' | nc $SERVER_ADDRESS $SERVER_PORT"`.
+
+El comando `sh -c <command_string>` significa que utiliza el intérprete de shell para ejecutar `<command_string>`. El comando a ejecutar por nosotros es `echo '$MESSAGE_FOR_SERVER' | nc $SERVER_ADDRESS $SERVER_PORT`, `echo` escribe el mensaje en `stdout`, que mediante el pipeline (`|`) se pasa como `stdin` a `nc`, el cual lo lee y envía al servidor con dirección `$SERVER_ADDRESS` y puerto `$SERVER_PORT`. ³
+
+Como es un echo server, lo que se va a imprimir por pantalla es lo mismo que enviamos, por lo cual, para que la conexión haya sido efectiva, comparamos el resultado de ese comando con el mensaje del `stdout` que imprime el servidor y, si son iguales, imprimimos el mensaje de éxito (`action: test_echo_server | result: success`), caso contrario, el mensaje de error (`action: test_echo_server | result: fail`). ⁴
+
+#### Referencias
+
+1. Docker Official Image. (n.d.). busybox. Retrieved August 22, 2025, from [https://hub.docker.com/_/busybox](https://hub.docker.com/_/busybox)
+2. “Networking.” (2025, May 1). Docker Documentation. Retrieved August 22, 2025, from [https://docs.docker.com/engine/network/#user-defined-networks](https://docs.docker.com/engine/network/#user-defined-networks)
+3. sh(1p) - Linux manual page. (n.d.). Retrieved August 22, 2025, from [https://man7.org/linux/man-pages/man1/sh.1p.html](https://man7.org/linux/man-pages/man1/sh.1p.html)
+4. nc(1) - Linux man page. (n.d.). Retrieved August 22, 2025, from [https://linux.die.net/man/1/nc](https://linux.die.net/man/1/nc)
 
 ## Instrucciones de uso
 El repositorio cuenta con un **Makefile** que incluye distintos comandos en forma de targets. Los targets se ejecutan mediante la invocación de:  **make \<target\>**. Los target imprescindibles para iniciar y detener el sistema son **docker-compose-up** y **docker-compose-down**, siendo los restantes targets de utilidad para el proceso de depuración.
