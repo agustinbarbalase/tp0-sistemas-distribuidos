@@ -2,26 +2,26 @@
 
 def define_server(file):
   file.write(
-    "server:\n"
-    "  container_name: server\n"
-    "  image: server:latest\n"
-    "  entrypoint: python3 /main.py\n"
-    "  environment:\n"
-    "    - PYTHONUNBUFFERED=1\n"
-    "    - LOGGING_LEVEL=DEBUG\n"
-    "  networks:\n"
-    "    - testing_net\n"
+    "  server:\n"
+    "    container_name: server\n"
+    "    image: server:latest\n"
+    "    entrypoint: python3 /main.py\n"
+    "    environment:\n"
+    "      - PYTHONUNBUFFERED=1\n"
+    "      - LOGGING_LEVEL=DEBUG\n"
+    "    networks:\n"
+    "      - testing_net\n"
     "\n"
   )
 
 def define_client(file, number_of_client):
   file.write(
     f"  client{number_of_client}:\n"
-    f"   container_name: client{number_of_client}\n"
+    f"    container_name: client{number_of_client}\n"
     "    image: client:latest\n"
     "    entrypoint: /client\n"
     "    environment:\n"
-    f"     - CLI_ID={number_of_client}\n"
+    f"      - CLI_ID={number_of_client}\n"
     "      - CLI_LOG_LEVEL=DEBUG\n"
     "    networks:\n"
     "      - testing_net\n"
@@ -38,13 +38,12 @@ def define_network(file):
     "      driver: default\n"
     "      config:\n"
     "        - subnet: 172.25.125.0/24\n"
-    "\n"
   )
 
 def create_docker_compose(filename, number_of_clients):
   with open(filename, "w") as file:
     file.write(
-      "name: 'tp0'\n"
+      "name: tp0\n"
       "services:\n"
     )
     
@@ -56,4 +55,4 @@ def create_docker_compose(filename, number_of_clients):
     define_network(file)
 
 if __name__ == "__main__":
-  create_docker_compose("docker-compose.yml", 3)
+  create_docker_compose("docker-compose.yml", 1)
