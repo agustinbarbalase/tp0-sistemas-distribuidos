@@ -55,6 +55,10 @@ def create_docker_compose(filename, number_of_clients):
     define_network(file)
 
 def main():
+  if len(sys.argv) != 3:
+    print("Usage: python3 mi-generador.py <filename> <number_of_clients>")
+    sys.exit(1)
+
   filename = sys.argv[1]
   number_of_clients = int(sys.argv[2])
 
