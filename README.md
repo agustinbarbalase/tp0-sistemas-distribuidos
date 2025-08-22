@@ -4,6 +4,30 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
 
  El cliente (Golang) y el servidor (Python) fueron desarrollados en diferentes lenguajes simplemente para mostrar cómo dos lenguajes de programación pueden convivir en el mismo proyecto con la ayuda de containers, en este caso utilizando [Docker Compose](https://docs.docker.com/compose/).
 
+## Índice
+
+- [TP0: Docker + Comunicaciones + Concurrencia](#tp0-docker--comunicaciones--concurrencia)
+  - [Índice](#índice)
+  - [Instrucciones de uso](#instrucciones-de-uso)
+    - [Servidor](#servidor)
+    - [Cliente](#cliente)
+    - [Ejemplo](#ejemplo)
+  - [Parte 1: Introducción a Docker](#parte-1-introducción-a-docker)
+    - [Ejercicio N°1:](#ejercicio-n1)
+    - [Ejercicio N°2:](#ejercicio-n2)
+    - [Ejercicio N°3:](#ejercicio-n3)
+    - [Ejercicio N°4:](#ejercicio-n4)
+  - [Parte 2: Repaso de Comunicaciones](#parte-2-repaso-de-comunicaciones)
+    - [Ejercicio N°5:](#ejercicio-n5)
+      - [Cliente](#cliente-1)
+      - [Servidor](#servidor-1)
+      - [Comunicación:](#comunicación)
+    - [Ejercicio N°6:](#ejercicio-n6)
+    - [Ejercicio N°7:](#ejercicio-n7)
+  - [Parte 3: Repaso de Concurrencia](#parte-3-repaso-de-concurrencia)
+    - [Ejercicio N°8:](#ejercicio-n8)
+  - [Condiciones de Entrega](#condiciones-de-entrega)
+
 ## Instrucciones de uso
 El repositorio cuenta con un **Makefile** que incluye distintos comandos en forma de targets. Los targets se ejecutan mediante la invocación de:  **make \<target\>**. Los target imprescindibles para iniciar y detener el sistema son **docker-compose-up** y **docker-compose-down**, siendo los restantes targets de utilidad para el proceso de depuración.
 
