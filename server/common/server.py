@@ -11,10 +11,11 @@ class Server:
         self._is_closed = False
         self._curr_client_sock = None
 
-        def handle_sigterm(signum, frame):
+        def handle_signal(signum, frame):
             self.shutdown()
 
-        signal.signal(signal.SIGTERM, handle_sigterm)
+        signal.signal(signal.SIGTERM, handle_signal)
+        signal.signal(signal.SIGINT, handle_signal)
 
     def run(self):
         """
