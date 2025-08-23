@@ -41,11 +41,11 @@ func NewClient(config ClientConfig) *Client {
 
 func(c *Client) shutdown(sigs chan os.Signal) {
 	<-sigs
-	log.Infof("action: shutdown_client | result: in_progress | client_id: %v", c.config.ID)
+	log.Infof("action: shutdown | result: in_progress | client_id: %v", c.config.ID)
 	if c.conn != nil {
 		c.conn.Close()
 	}
-	log.Infof("action: shutdown_client | result: success | client_id: %v", c.config.ID)
+	log.Infof("action: shutdown | result: success | client_id: %v", c.config.ID)
 	os.Exit(0)
 }
 
