@@ -8,6 +8,8 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self._is_closed = False
+
         signal.signal(signal.SIGTERM, self.__shutdown)
 
     def run(self):
@@ -19,9 +21,7 @@ class Server:
         finishes, servers starts to accept new connections again
         """
 
-        # TODO: Modify this program to handle signal to graceful shutdown
-        # the server
-        while True:
+        while not self._is_closed:
             client_sock = self.__accept_new_connection()
             self.__handle_client_connection(client_sock)
 
@@ -66,4 +66,5 @@ class Server:
         receiving a SIGTERM
         """
 
+        self._is_closed = True
         self._server_socket.close()
