@@ -58,7 +58,7 @@ class Server:
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
         return c
 
-    def __shutdown(self):
+    def __shutdown(self, signum, frame):
         """
         Gracefull shutdown
 
