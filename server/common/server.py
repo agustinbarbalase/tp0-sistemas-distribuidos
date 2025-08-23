@@ -11,7 +11,10 @@ class Server:
         self._is_closed = False
         self._curr_client_sock = None
 
-        signal.signal(signal.SIGTERM, self.__shutdown)
+        def handle_sigterm(signum, frame):
+            self.shutdown()
+
+        signal.signal(signal.SIGTERM, handle_sigterm)
 
     def run(self):
         """
@@ -26,6 +29,19 @@ class Server:
             self._curr_client_sock = self.__accept_new_connection()
             if self._is_closed: break
             self.__handle_client_connection()
+
+    def shutdown(self):
+        """
+        Gracefull shutdown
+
+        Function used for graceful shutdown of the server
+        """
+
+        logging.info('action: shutdown_server | result: in_progress')
+        self._is_closed = True
+        self._server_socket.shutdown(socket.SHUT_RDWR)
+        self._server_socket.close()
+        logging.info('action: shutdown_server | result: success')
 
     def __handle_client_connection(self):
         """
@@ -65,17 +81,3 @@ class Server:
                 return None
             else:
                 raise
-
-    def __shutdown(self, signum, frame):
-        """
-        Gracefull shutdown
-
-        Function used for graceful shutdown of the server when 
-        receiving a SIGTERM
-        """
-
-        logging.info('action: shutdown_server | result: in_progress')
-        self._is_closed = True
-        self._server_socket.shutdown(socket.SHUT_RDWR)
-        self._server_socket.close()
-        logging.info('action: shutdown_server | result: success')
