@@ -37,6 +37,7 @@ class Server:
 
         Function used for graceful shutdown of the server
         """
+        if self._is_closed: return
 
         logging.info('action: shutdown | result: in_progress')
         self._is_closed = True
