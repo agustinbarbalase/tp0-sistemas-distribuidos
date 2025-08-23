@@ -71,14 +71,13 @@ class Server:
         Then connection created is printed and returned
         """
 
-        # Connection arrived
         try:
+            # Connection arrived
             logging.info('action: accept_connections | result: in_progress')
             c, addr = self._server_socket.accept()
             logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
             return c
         except OSError:
-            if self._is_closed:
-                return None
-            else:
+            if not self._is_closed:
                 raise
+            return None
