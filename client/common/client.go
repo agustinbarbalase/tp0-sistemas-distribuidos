@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net"
 	"time"
-
+	"os"
+	"os/signal"
+	"syscall"
 	"github.com/op/go-logging"
 )
 
@@ -31,7 +33,20 @@ func NewClient(config ClientConfig) *Client {
 	client := &Client{
 		config: config,
 	}
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGTERM)
+	go client.shutdown(sigs)
 	return client
+}
+
+func(c *Client) shutdown(sigs chan os.Signal) {
+	<-sigs
+	log.Infof("action: shutdown_client | result: in_progress | client_id: %v", c.config.ID)
+	if c.conn != nil {
+		c.conn.Close()
+	}
+	log.Infof("action: shutdown_client | result: success | client_id: %v", c.config.ID)
+	os.Exit(0)
 }
 
 // CreateClientSocket Initializes client socket. In case of
