@@ -38,11 +38,11 @@ class Server:
         Function used for graceful shutdown of the server
         """
 
-        logging.info('action: shutdown_server | result: in_progress')
+        logging.info('action: shutdown | result: in_progress')
         self._is_closed = True
         self._server_socket.shutdown(socket.SHUT_RDWR)
         self._server_socket.close()
-        logging.info('action: shutdown_server | result: success')
+        logging.info('action: shutdown | result: success')
 
     def __handle_client_connection(self):
         """
