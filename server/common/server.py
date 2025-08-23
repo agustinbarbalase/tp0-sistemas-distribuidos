@@ -66,5 +66,7 @@ class Server:
         receiving a SIGTERM
         """
 
+        logging.info('action: shutdown_server | result: in_progress')
         self._is_closed = True
         self._server_socket.close()
+        logging.info('action: shutdown_server | result: success')
