@@ -9,7 +9,6 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self._is_closed = False
-        self._curr_client_sock = None
 
         def handle_signal(signum, frame):
             self.shutdown()
@@ -27,9 +26,9 @@ class Server:
         """
 
         while not self._is_closed:
-            self._curr_client_sock = self.__accept_new_connection()
+            client_sock = self.__accept_new_connection()
             if self._is_closed: break
-            self.__handle_client_connection()
+            self.__handle_client_connection(client_sock)
 
     def shutdown(self):
         """
@@ -45,7 +44,7 @@ class Server:
         self._server_socket.close()
         logging.info('action: shutdown | result: success')
 
-    def __handle_client_connection(self):
+    def __handle_client_connection(self, client_sock):
         """
         Read message from a specific client socket and closes the socket
 
@@ -54,15 +53,15 @@ class Server:
         """
         try:
             # TODO: Modify the receive to avoid short-reads
-            msg = self._curr_client_sock.recv(1024).rstrip().decode('utf-8')
-            addr = self._curr_client_sock.getpeername()
+            msg = client_sock.recv(1024).rstrip().decode('utf-8')
+            addr = client_sock.getpeername()
             logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
             # TODO: Modify the send to avoid short-writes
-            self._curr_client_sock.send("{}\n".format(msg).encode('utf-8'))
+            client_sock.send("{}\n".format(msg).encode('utf-8'))
         except OSError as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
-            self._curr_client_sock.close()
+            client_sock.close()
 
     def __accept_new_connection(self):
         """
