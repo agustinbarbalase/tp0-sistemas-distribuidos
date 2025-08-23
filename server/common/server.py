@@ -62,7 +62,6 @@ class Server:
             return c
         except OSError:
             if self._is_closed:
-                logging.info('action: accept_connections | result: server_closed')
                 return None
             else:
                 raise
