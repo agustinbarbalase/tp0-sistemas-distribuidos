@@ -1,13 +1,12 @@
 package common
 
 import (
-	"bufio"
-	"fmt"
 	"net"
 	"time"
 	"os"
 	"os/signal"
 	"syscall"
+	"strconv"
 	"github.com/op/go-logging"
 )
 
@@ -80,28 +79,35 @@ func (c *Client) handleSignal() {
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
-	for msgID := 1; msgID <= c.config.LoopAmount && !c.isClosed; msgID++ {
-		if err := c.createClientSocket(); err != nil || c.isClosed {
-			return
-		}
+	protocol := NewProtocol(c.conn)
 
-		if _, err := fmt.Fprintf(c.conn, "[CLIENT %v] Message N°%v\n", c.config.ID, msgID); err != nil {
-			if c.isClosed { return }
-			log.Errorf("action: send_message | result: fail | client_id: %v | error: %v", c.config.ID, err)
-			c.conn.Close()
-			return
-		}
-
-		resp, err := bufio.NewReader(c.conn).ReadString('\n')
-		c.conn.Close()
-		if err != nil {
-			if c.isClosed { return }
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v", c.config.ID, err)
-			return
-		}
-
-		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v", c.config.ID, resp)
-		time.Sleep(c.config.LoopPeriod)
+	document := os.Getenv("DOCUMENT")
+	number, err := strconv.Atoi(os.Getenv("NUMBER"))
+	if err != nil {
+		log.Errorf("action: parse_number | result: fail | client_id: %v | error: %v", c.config.ID, err)
+		number = 0
 	}
-	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+
+	err = protocol.SendBet(
+		&Bet{
+			FirstName:  os.Getenv("FIRST_NAME"),
+			LastName:   os.Getenv("LAST_NAME"),
+			Document:   document,
+			Birthdate:  os.Getenv("BIRTHDATE"),
+			Number:     number,
+		},
+	)
+
+	if err != nil {
+		log.Error("action: apuesta_enviada | result: fail | dni: %v | numero: %v | error: %v", document, number, err)
+		return
+	}
+
+	err = protocol.RecvAckMsg()
+	if err != nil {
+		log.Error("action: apuesta_enviada | result: fail | dni: %v | numero: %v | error: %v", document, number, err)
+		return
+	}
+
+	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", document, number)
 }
