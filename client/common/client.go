@@ -72,6 +72,7 @@ func (c *Client) shutdown() {
 // and shuts down the client gracefully
 func (c *Client) handleSignal() {
 	<-c.signalChannel
+	close(c.signalChannel)
 	c.shutdown()
 	os.Exit(0)
 }
