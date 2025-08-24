@@ -90,6 +90,18 @@ func PrintConfig(v *viper.Viper) {
 	)
 }
 
+// PrintBet Print all the bet parameters of the program.
+// For debugging purposes only
+func PrintBet() {
+	log.Infof("action: bet | result: success | nombre: %s | apellido: %s | documento: %s | nacimiento: %s | numero: %s",
+		os.Getenv("NOMBRE"),
+		os.Getenv("APELLIDO"),
+		os.Getenv("DOCUMENTO"),
+		os.Getenv("NACIMIENTO"),
+		os.Getenv("NUMERO"),
+	)
+}
+
 func main() {
 	v, err := InitConfig()
 	if err != nil {
@@ -102,6 +114,9 @@ func main() {
 
 	// Print program config with debugging purposes
 	PrintConfig(v)
+
+	// Print bet with debuggin purposes
+	PrintBet()
 
 	clientConfig := common.ClientConfig{
 		ServerAddress: v.GetString("server.address"),
