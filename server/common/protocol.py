@@ -35,10 +35,10 @@ class Protocol:
     return Bet('1', first_name, last_name, document, birthdate, number)
 
   def send_success_msg(self) -> None:
-    self._socket.sendall(Protocol.OK_HEADER.to_bytes(Protocol.SIZE_HEADER))
+    self._socket.sendall(Protocol.OK_HEADER.to_bytes(Protocol.SIZE_HEADER, "big"))
 
   def send_failure_msg(self) -> None:
-    self._socket.sendall(Protocol.FAIL_HEADER.to_bytes(Protocol.SIZE_HEADER))
+    self._socket.sendall(Protocol.FAIL_HEADER.to_bytes(Protocol.SIZE_HEADER, "big"))
 
   def __recv_all(self, length: int) -> bytes:
     data = b''
