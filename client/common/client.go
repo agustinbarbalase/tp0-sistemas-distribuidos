@@ -60,6 +60,7 @@ func (c *Client) createClientSocket() error {
 func (c *Client) handleSignal(sigs chan os.Signal) {
 	<-sigs
 	c.shutdown()
+	os.Exit(0)
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
