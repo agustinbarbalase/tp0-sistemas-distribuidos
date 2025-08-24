@@ -35,18 +35,8 @@ func NewClient(config ClientConfig) *Client {
 	}
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM)
-	go client.shutdown(sigs)
+	go client.handleSignal(sigs)
 	return client
-}
-
-func(c *Client) shutdown(sigs chan os.Signal) {
-	<-sigs
-	log.Infof("action: shutdown | result: in_progress | client_id: %v", c.config.ID)
-	if c.conn != nil {
-		c.conn.Close()
-	}
-	log.Infof("action: shutdown | result: success | client_id: %v", c.config.ID)
-	os.Exit(0)
 }
 
 // CreateClientSocket Initializes client socket. In case of
@@ -63,6 +53,13 @@ func (c *Client) createClientSocket() error {
 	}
 	c.conn = conn
 	return nil
+}
+
+// handleSignal listens for termination signals 
+// and shuts down the client gracefully
+func (c *Client) handleSignal(sigs chan os.Signal) {
+	<-sigs
+	c.shutdown()
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
@@ -106,4 +103,13 @@ func (c *Client) StartClientLoop() {
 
 	}
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+}
+
+// Shutdown the client gracefully
+func (c *Client) shutdown() {
+	log.Infof("action: shutdown | result: in_progress | client_id: %v", c.config.ID)
+	if c.conn != nil {
+		c.conn.Close()
+	}
+	log.Infof("action: shutdown | result: success | client_id: %v", c.config.ID)
 }
