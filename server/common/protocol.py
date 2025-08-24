@@ -19,7 +19,7 @@ class Protocol:
 
   def recv_bet(self) -> Bet:
     code = self.__recv_all(Protocol.SIZE_HEADER)
-    if code != Protocol.BET_HEADER.to_bytes(Protocol.SIZE_HEADER):
+    if code != Protocol.BET_HEADER.to_bytes(Protocol.SIZE_HEADER, "big"):
       raise ValueError("Invalid header")
 
     length_first_name = int.from_bytes(self.__recv_all(Protocol.SIZE_FIELDS), "big")
