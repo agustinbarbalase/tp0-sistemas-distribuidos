@@ -38,7 +38,7 @@ func NewClient(config ClientConfig) *Client {
 		isClosed: false,
 	}
 	signal.Notify(client.signalChannel, syscall.SIGTERM)
-	go client.handleSignal(client.signalChannel)
+	go client.handleSignal()
 	return client
 }
 
@@ -60,8 +60,8 @@ func (c *Client) createClientSocket() error {
 
 // handleSignal listens for termination signals 
 // and shuts down the client gracefully
-func (c *Client) handleSignal(sigs chan os.Signal) {
-	<-sigs
+func (c *Client) handleSignal() {
+	<-c.signalChannel
 	c.Shutdown()
 	os.Exit(0)
 }
