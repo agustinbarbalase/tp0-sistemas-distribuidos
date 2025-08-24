@@ -149,7 +149,7 @@ Si el servidor recibe una interrupción mientras espera una conexión, simplemen
 ```python
 conn # Conexión con el cliente
 is_closed # Variable para detectar si el socket de aceptación está cerrado
---------------------------------------------------------------------------
+#-------------------------------------------------------------------------
 
 def server_loop():
   while not is_closed:
@@ -170,7 +170,7 @@ Ahí aparece una cuestión de políticas: si queremos terminar de atender al cli
 ```python
 conn # Conexión con el cliente
 is_closed # Variable para detectar si el socket de aceptación está cerrado
---------------------------------------------------------------------------
+#-------------------------------------------------------------------------
 
 def server_loop():
   while not is_closed:
@@ -276,26 +276,26 @@ isClosed // Variable para detectar si el socket de aceptación está cerrado
 err // Variable para guardar el valor de un error
 conn // Conexión con el servidor
 msg // Mensaje a mandar
---------------------------------------------------------------------------
+//------------------------------------------------------------------------
 
 func ClientLoop() {
   for currMsgNumber := 1; currMsgNumber <= totalMsgNumber && !isClosed; currMsgNumber++ {
-  if err := createConnection(); err != nil || isClosed {
-    return
-  }
+    if err := createConnection(); err != nil || isClosed {
+      return
+    }
 
-  if _, err := conn.sendMessage(msg); err != nil {
-    if isClosed { return }
-    conn.Close()
-    return
-  }
+    if _, err := conn.sendMessage(msg); err != nil {
+      if isClosed { return }
+      conn.Close()
+      return
+    }
 
-  resp, err := conn.recvMessage()
-  conn.Close() 
-  if err != nil {
-    if isClosed { return }
-    return
-  }
+    resp, err := conn.recvMessage()
+    conn.Close() 
+    if err != nil {
+      if isClosed { return }
+      return
+    }
   }
 }
 ```
