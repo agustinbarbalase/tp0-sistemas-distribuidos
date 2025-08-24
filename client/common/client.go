@@ -70,7 +70,7 @@ func (c *Client) handleSignal() {
 func (c *Client) StartClientLoop() {
 	// There is an autoincremental msgID to identify every message sent
 	// Messages if the message amount threshold has not been surpassed
-	for msgID := 1; msgID <= c.config.LoopAmount && c.isClosed; msgID++ {
+	for msgID := 1; msgID <= c.config.LoopAmount && !c.isClosed; msgID++ {
 		// Create the connection the server in every loop iteration. Send an
 		c.createClientSocket()
 		if c.isClosed {
