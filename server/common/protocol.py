@@ -76,6 +76,8 @@ class Protocol:
 
         This is equivalent to the C function `ntohs`, which converts a
         short integer from network byte order to host byte order.
+
+        If `bytes` is not at least 2 bytes long, the behavior is undefined.
         """
         return int.from_bytes(bytes[:2], "big", signed=False)
 
