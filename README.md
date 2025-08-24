@@ -176,9 +176,9 @@ def server_loop():
   while not is_closed:
     conn = accept_connection()
     if is_closed: break
-    handle_connection(conn)
+    handle_connection()
 
-def handle_connection(conn):
+def handle_connection():
   try:
     msg = conn.read()
     if is_closed: return
