@@ -132,10 +132,10 @@ func (p *Protocol) SendBet(bet *Bet) error {
 	return nil
 }
 
-// RecvAckMsg waits for an acknowledgment message from the server.
+// RecvOKMsg waits for an acknowledgment message from the server.
 // The server should reply with a single-byte header = OK_HEADER (0x02).
 // Returns an error if the message is invalid or not received.
-func (p *Protocol) RecvAckMsg() error {
+func (p *Protocol) RecvOKMsg() error {
 	ack := make([]byte, SIZE_HEADER_BYTES)
 	if err := p.readAll(ack, SIZE_HEADER_BYTES); err != nil {
 		return err
