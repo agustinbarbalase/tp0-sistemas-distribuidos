@@ -1,5 +1,11 @@
 from .utils import Bet
 
+class UnexpectedMessage(Exception):
+    """
+    Custom exception raised when an unexpected message is received.
+    """
+    pass
+
 class ConnectionClose(Exception):
     """
     Custom exception raised when a socket connection is unexpectedly closed.
@@ -20,7 +26,7 @@ class Protocol:
     SIZE_FIELDS_BYTES   =  2   # Size (in bytes) for variable-length field lengths
     SIZE_DOCUMENT_BYTES =  8   # Size (in bytes) of the document number (DNI)
     SIZE_DATE_BYTES     =  10  # Size (in bytes) of the birthdate field
-    SIZE_NUMBER_BYTES   =  4   # Size (in bytes) of the numeric field (e.g., bet number)
+    SIZE_NUMBER_BYTES   =  4   # Size (in bytes) of the numeric bet
 
     # --- Headers ---
     BET_HEADER: bytes  = b"\x01"  # Header indicating a bet message
@@ -43,8 +49,8 @@ class Protocol:
         - Number (fixed length)
         """
         header: bytes = self.__recv_all(Protocol.SIZE_HEADER_BYTES)
-        if header != Protocol.BET_HEADER:
-            raise ValueError("Invalid header")
+        if header != Protocol.BET_HEADER: 
+            raise UnexpectedMessage("Invalid header")
 
         first_name_length: int = self.__ntohs(self.__recv_all(Protocol.SIZE_FIELDS_BYTES))
         first_name: str = self.__recv_all(first_name_length).decode("utf-8")

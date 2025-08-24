@@ -2,7 +2,7 @@ import socket
 import logging
 import signal
 
-from .protocol import Protocol, ConnectionClose
+from .protocol import Protocol, UnexpectedMessage, ConnectionClose
 from .utils import store_bets
 
 class Server:
@@ -59,6 +59,9 @@ class Server:
             store_bets([bet])
             logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}")
             protocol.send_success_msg()
+        except UnexpectedMessage as e:
+            logging.error(f"action: receive_message | result: fail | error: {e}")
+            protocol.send_failure_msg()
         except ConnectionClose as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
             protocol.send_failure_msg()
