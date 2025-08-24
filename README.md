@@ -207,7 +207,7 @@ conn # Conexión con el cliente
 addr # Dirección del cliente (ip, port)
 sock # Socket de aceptación del server
 is_closed # Variable para detectar si el socket de aceptación está cerrado
---------------------------------------------------------------------------
+#-------------------------------------------------------------------------
 
 def accept_connection():
   try:
