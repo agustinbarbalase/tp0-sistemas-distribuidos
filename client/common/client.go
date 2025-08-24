@@ -23,8 +23,10 @@ type ClientConfig struct {
 
 // Client Entity that encapsulates how
 type Client struct {
-	config ClientConfig
-	conn   net.Conn
+	config    ClientConfig
+	conn      net.Conn
+	signalChannel chan os.Signal
+	isClosed  bool
 }
 
 // NewClient Initializes a new client receiving the configuration
@@ -32,10 +34,11 @@ type Client struct {
 func NewClient(config ClientConfig) *Client {
 	client := &Client{
 		config: config,
+		signalChannel: make(chan os.Signal, 1),
+		isClosed: false,
 	}
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGTERM)
-	go client.handleSignal(sigs)
+	signal.Notify(client.signalChannel, syscall.SIGTERM)
+	go client.handleSignal(client.signalChannel)
 	return client
 }
 
@@ -59,7 +62,7 @@ func (c *Client) createClientSocket() error {
 // and shuts down the client gracefully
 func (c *Client) handleSignal(sigs chan os.Signal) {
 	<-sigs
-	c.shutdown()
+	c.Shutdown()
 	os.Exit(0)
 }
 
@@ -67,37 +70,48 @@ func (c *Client) handleSignal(sigs chan os.Signal) {
 func (c *Client) StartClientLoop() {
 	// There is an autoincremental msgID to identify every message sent
 	// Messages if the message amount threshold has not been surpassed
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
+	for msgID := 1; msgID <= c.config.LoopAmount && c.isClosed; msgID++ {
 		// Create the connection the server in every loop iteration. Send an
 		c.createClientSocket()
-		
-		if c.conn != nil {
-			// TODO: Modify the send to avoid short-write
-			fmt.Fprintf(
-				c.conn,
-				"[CLIENT %v] Message N°%v\n",
-				c.config.ID,
-				msgID,
-			)
+		if c.isClosed {
+			return
 		}
 
-		if c.conn != nil {
-			msg, err := bufio.NewReader(c.conn).ReadString('\n')
-			c.conn.Close()
-
-			if err != nil {
-				log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+		// TODO: Modify the send to avoid short-write
+		_, err := fmt.Fprintf(
+			c.conn,
+			"[CLIENT %v] Message N°%v\n",
+			c.config.ID,
+			msgID,
+		)
+		if err != nil && c.isClosed {
+			if !c.isClosed {
+				log.Errorf("action: send_message | result: fail | client_id: %v | error: %v",
 					c.config.ID,
 					err,
 				)
-				return
 			}
-
-			log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-				c.config.ID,
-				msg,
-			)
+			return
 		}
+
+		msg, err := bufio.NewReader(c.conn).ReadString('\n')
+		if c.isClosed {
+			return
+		}
+		c.conn.Close()
+
+		if err != nil {
+			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+				c.config.ID,
+				err,
+			)
+			return
+		}
+
+		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
+			c.config.ID,
+			msg,
+		)
 
 		// Wait a time between sending one message and the next one
 		time.Sleep(c.config.LoopPeriod)
@@ -107,8 +121,9 @@ func (c *Client) StartClientLoop() {
 }
 
 // Shutdown the client gracefully
-func (c *Client) shutdown() {
+func (c *Client) Shutdown() {
 	log.Infof("action: shutdown | result: in_progress | client_id: %v", c.config.ID)
+	c.isClosed = true
 	if c.conn != nil {
 		c.conn.Close()
 	}
