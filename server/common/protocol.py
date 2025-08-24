@@ -1,4 +1,4 @@
-from utils import Bet
+from .utils import Bet
 
 class ConnectionClose(Exception):
   pass
