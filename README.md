@@ -15,7 +15,7 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
     - [Ejercicio N°3](#ejercicio-n3)
       - [Referencias](#referencias-1)
     - [Ejercicio N°4](#ejercicio-n4)
-    - [Servidor](#servidor)
+      - [Servidor](#servidor)
       - [Cliente](#cliente)
       - [Referencias](#referencias-2)
   - [Instrucciones de uso](#instrucciones-de-uso)
@@ -115,7 +115,7 @@ Como es un echo server, lo que se va a imprimir por pantalla es lo mismo que env
 
 En este ejercicio implementamos toda la lógica para un _graceful shutdown_ cuando ambos reciben un *SIGTERM*. Vamos a explicar cómo funciona del lado del servidor primero y luego pasaremos a explicar el cliente.
 
-### Servidor
+#### Servidor
 
 Primero, vamos a hacer una visión simplificada del flujo del servidor. Para eso, insertemos un pequeño diagrama de estados de cómo funciona exactamente el servidor.
 
