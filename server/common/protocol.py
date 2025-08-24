@@ -16,11 +16,11 @@ class Protocol:
     """
 
     # --- Field sizes ---
-    SIZE_HEADER_BYTES = 1  # Size (in bytes) of the message header
-    SIZE_FIELDS_BYTES = 2  # Size (in bytes) for variable-length field lengths
-    SIZE_DOCUMENT_BYTES = 8  # Size (in bytes) of the document number (DNI)
-    SIZE_DATE_BYTES = 10  # Size (in bytes) of the birthdate field
-    SIZE_NUMBER_BYTES = 4  # Size (in bytes) of the numeric field (e.g., bet number)
+    SIZE_HEADER_BYTES: int    = 1    # Size (in bytes) of the message header
+    SIZE_FIELDS_BYTES: int    = 2    # Size (in bytes) for variable-length field lengths
+    SIZE_DOCUMENT_BYTES: int  = 8    # Size (in bytes) of the document number (DNI)
+    SIZE_DATE_BYTES: int      = 10   # Size (in bytes) of the birthdate field
+    SIZE_NUMBER_BYTES: int    = 4    # Size (in bytes) of the numeric field (e.g., bet number)
 
     # --- Headers ---
     BET_HEADER = 1  # Header indicating a bet message
