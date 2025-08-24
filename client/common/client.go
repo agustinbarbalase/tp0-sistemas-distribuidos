@@ -81,8 +81,8 @@ func (c *Client) handleSignal() {
 func (c *Client) StartClientLoop() {
 	protocol := NewProtocol(c.conn)
 
-	document := os.Getenv("DOCUMENT")
-	number, err := strconv.Atoi(os.Getenv("NUMBER"))
+	document := os.Getenv("DOCUMENTO")
+	number, err := strconv.Atoi(os.Getenv("NUMERO"))
 	if err != nil {
 		log.Errorf("action: parse_number | result: fail | client_id: %v | error: %v", c.config.ID, err)
 		number = 0
@@ -90,10 +90,10 @@ func (c *Client) StartClientLoop() {
 
 	err = protocol.SendBet(
 		&Bet{
-			FirstName:  os.Getenv("FIRST_NAME"),
-			LastName:   os.Getenv("LAST_NAME"),
+			FirstName:  os.Getenv("NOMBRE"),
+			LastName:   os.Getenv("APELLIDO"),
 			Document:   document,
-			Birthdate:  os.Getenv("BIRTHDATE"),
+			Birthdate:  os.Getenv("NACIMIENTO"),
 			Number:     number,
 		},
 	)
