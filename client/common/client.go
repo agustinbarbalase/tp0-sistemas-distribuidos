@@ -77,7 +77,7 @@ func (c *Client) handleSignal() {
 	os.Exit(0)
 }
 
-// StartClientLoop Send messages to the client until some time threshold is met
+// StartClientLoop Send bets
 func (c *Client) StartClientLoop() {
 	if err := c.createClientSocket(); err != nil {
 		return
@@ -88,6 +88,9 @@ func (c *Client) StartClientLoop() {
 	document := os.Getenv("DOCUMENTO")
 	number, err := strconv.Atoi(os.Getenv("NUMERO"))
 	if err != nil {
+		if c.isClosed { 
+			return 
+		}
 		log.Errorf("action: parse_number | result: fail | client_id: %v | error: %v", c.config.ID, err)
 		number = 0
 	}
@@ -103,15 +106,22 @@ func (c *Client) StartClientLoop() {
 	)
 
 	if err != nil {
+		if c.isClosed { 
+			return 
+		}
 		log.Error("action: apuesta_enviada | result: fail | dni: %v | numero: %v | error: %v", document, number, err)
 		return
 	}
 
 	err = protocol.RecvAckMsg()
 	if err != nil {
+		if c.isClosed { 
+			return 
+		}
 		log.Error("action: apuesta_enviada | result: fail | dni: %v | numero: %v | error: %v", document, number, err)
 		return
 	}
 
+	
 	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", document, number)
 }

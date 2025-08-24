@@ -26,7 +26,7 @@ class Protocol:
     SIZE_FIELDS_BYTES   =  2   # Size (in bytes) for variable-length field lengths
     SIZE_DOCUMENT_BYTES =  8   # Size (in bytes) of the document number (DNI)
     SIZE_DATE_BYTES     =  10  # Size (in bytes) of the birthdate field
-    SIZE_NUMBER_BYTES   =  4   # Size (in bytes) of the numeric bet
+    SIZE_NUMBER_BYTES   =  4   # Size (in bytes) of the bet number
 
     # --- Headers ---
     BET_HEADER: bytes  = b"\x01"  # Header indicating a bet message
