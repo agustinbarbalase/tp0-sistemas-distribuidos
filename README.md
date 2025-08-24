@@ -14,19 +14,23 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
       - [Referencias](#referencias)
     - [Ejercicio N°3](#ejercicio-n3)
       - [Referencias](#referencias-1)
-  - [Instrucciones de uso](#instrucciones-de-uso)
+    - [Ejercicio N°4](#ejercicio-n4)
     - [Servidor](#servidor)
-    - [Cliente](#cliente)
+      - [Cliente](#cliente)
+      - [Referencias](#referencias-2)
+  - [Instrucciones de uso](#instrucciones-de-uso)
+    - [Servidor](#servidor-1)
+    - [Cliente](#cliente-1)
     - [Ejemplo](#ejemplo)
   - [Parte 1: Introducción a Docker](#parte-1-introducción-a-docker)
     - [Ejercicio N°1:](#ejercicio-n1-1)
     - [Ejercicio N°2:](#ejercicio-n2-1)
     - [Ejercicio N°3:](#ejercicio-n3-1)
-    - [Ejercicio N°4:](#ejercicio-n4)
+    - [Ejercicio N°4:](#ejercicio-n4-1)
   - [Parte 2: Repaso de Comunicaciones](#parte-2-repaso-de-comunicaciones)
     - [Ejercicio N°5:](#ejercicio-n5)
-      - [Cliente](#cliente-1)
-      - [Servidor](#servidor-1)
+      - [Cliente](#cliente-2)
+      - [Servidor](#servidor-2)
       - [Comunicación:](#comunicación)
     - [Ejercicio N°6:](#ejercicio-n6)
     - [Ejercicio N°7:](#ejercicio-n7)
@@ -106,6 +110,204 @@ Como es un echo server, lo que se va a imprimir por pantalla es lo mismo que env
 2. “Networking.” (2025, May 1). Docker Documentation. Retrieved August 22, 2025, from [https://docs.docker.com/engine/network/#user-defined-networks](https://docs.docker.com/engine/network/#user-defined-networks)
 3. sh(1p) - Linux manual page. (n.d.). Retrieved August 22, 2025, from [https://man7.org/linux/man-pages/man1/sh.1p.html](https://man7.org/linux/man-pages/man1/sh.1p.html)
 4. nc(1) - Linux man page. (n.d.). Retrieved August 22, 2025, from [https://linux.die.net/man/1/nc](https://linux.die.net/man/1/nc)
+
+### Ejercicio N°4
+
+En este ejercicio implementamos toda la lógica para un _graceful shutdown_ cuando ambos reciben un *SIGTERM*. Vamos a explicar cómo funciona del lado del servidor primero y luego pasaremos a explicar el cliente.
+
+### Servidor
+
+Primero, vamos a hacer una visión simplificada del flujo del servidor. Para eso, insertemos un pequeño diagrama de estados de cómo funciona exactamente el servidor.
+
+```txt
+  ------------->-------------
+  |                         |
+  |                         V
+  |               +-------------------+ 
+  |               |                   | ---
+  |       IN  ->  | accept_connection |   |  (Waiting connection)
+  |               |                   | <--
+  |               +-------------------+ 
+  |                         |
+  ^                         |  (Entry connection)
+  |                         |
+  |                         V
+  |               +-------------------+
+  |               |                   |
+  |               | handle_connection |
+  |               |                   |
+  |               +-------------------+
+  |                         |
+  ------------<--------------
+    (Finish connection)
+```
+
+Aquí dejamos una versión simplificada de cómo funciona el loop del server. Vemos que espera conexiones y, una vez que obtiene una, pasa a manejar esa conexión. Pensemos un momento qué pasa si entra la _signal_ en cada uno de esos puntos. Puede pasar. Vamos a dividir los casos en dos: mientras espera por una conexión o mientras atiende a una conexión.
+
+Si el servidor recibe una interrupción mientras espera una conexión, simplemente cerramos ese socket y no aceptamos ninguna conexión entrante nueva, y marcamos el servidor como cerrado para que, a la hora de manejar la conexión, no haga nada. En una especie de pseudocódigo se vería de la siguiente forma.
+
+```python
+conn # Conexión con el cliente
+is_closed # Variable para detectar si el socket de aceptación está cerrado
+--------------------------------------------------------------------------
+
+def server_loop():
+  while not is_closed:
+    conn = accept_connection()
+    if is_closed: break
+    handle_connection(conn)
+
+def shutdown():
+  is_closed = True
+  socket.shutdown(RW)
+  socket.close()
+```
+
+Ahora, ¿qué pasa si se cierra el socket mientras el servidor atiende a un cliente? Ahí tenemos dos formas de atacar el problema. Obviamente, debemos dejar de aceptar nuevas conexiones entrantes, por lo que hasta ahora nuestro shutdown permanece igual, pero podemos optar por cerrar o no el socket que maneja la conexión con el cliente.
+
+Ahí aparece una cuestión de políticas: si queremos terminar de atender al cliente o directamente le cerramos el socket para no seguir atendiendo su solicitud. Dada la simplicidad del ejercicio, optamos por terminar de atender a los clientes y luego terminar el cierre. Eso hace que el manejo sea igual al código anterior. Ahora, para manejar el cierre un poco más agresivo, mostramos un posible pseudocódigo.
+
+```python
+conn # Conexión con el cliente
+is_closed # Variable para detectar si el socket de aceptación está cerrado
+--------------------------------------------------------------------------
+
+def server_loop():
+  while not is_closed:
+    conn = accept_connection()
+    if is_closed: break
+    handle_connection(conn)
+
+def handle_connection(conn):
+  try:
+    msg = conn.read()
+    if is_closed: return
+    conn.write(msg)
+  except Exception as err:
+    if is_closed: return
+    raise err
+  finally:
+    if conn:
+      conn.close()
+      conn = None
+
+def shutdown():
+  is_closed = True
+  if conn:
+    conn.close()
+    conn = None
+  socket.shutdown(RW)
+  socket.close()
+```
+
+Finalizada la explicación simplificada del manejo de la _signal_, pasemos a explicar algunas cuestiones referidas a la implementación en Python. La primera cuestión a tener en cuenta es que, cuando nosotros cerramos una conexión en el socket de aceptación, este lanza un error del tipo *OSError*. Esto nos lleva a manejar esa excepción. A continuación mostramos cómo es el código para ese manejo. ¹
+
+```python
+conn # Conexión con el cliente
+addr # Dirección del cliente (ip, port)
+sock # Socket de aceptación del server
+is_closed # Variable para detectar si el socket de aceptación está cerrado
+--------------------------------------------------------------------------
+
+def accept_connection():
+  try:
+    conn, addr = sock.accept()
+    return conn
+  except OSError as err:
+    if not is_closed: raise err
+    return None
+```
+
+Si el servidor ya fue cerrado, simplemente salimos del `accept_connection()` y listo. Por otro lado, un breve comentario de qué son los parámetros para manejar las _signals_: uno de ellos es `signum`, este indica qué número de señal fue enviado. El otro parámetro es el `frame`, que corresponde al punto donde se estaba ejecutando el programa cuando se recibió la _signal_. ²
+
+#### Cliente
+
+Analicemos ahora el flujo del cliente con otro diagrama de estados simplificado, y veamos qué casos podemos tener.
+
+```txt
+  ------------->-------------
+  |                         |
+  |                         V
+  |               +-------------------+ 
+  |               |                   |
+  |       IN  ->  |  init_connection  |
+  |               |                   |
+  |               +-------------------+ 
+  |                         |
+  ^                         |  (Accepted connection)
+  |                         |
+  |                         V
+  |               +-------------------+
+  |               |                   |
+  |               |   send_message    |
+  |               |                   |
+  |               +-------------------+
+  |                         |
+  ^                         |  (Sent message)
+  |                         |
+  |                         V    
+  |               +-------------------+ 
+  |               |                   | ---
+  |               |   recv_message    |   |  (Waiting for message)
+  |               |                   | <--
+  |               +-------------------+
+  |                         |
+  ^                         |  (Received message)
+  |                         |
+  |                         V
+  |               +-------------------+
+  |               |                   |
+  |               | close_connection  |  ->  OUT
+  |               |                   |
+  |               +-------------------+ 
+  |                         |
+  ------------<--------------
+    (Send another message)
+```
+
+En el caso de que estemos esperando una conexión, simplemente deberemos chequear si fue mandada la _signal_ a través de la variable `is_closed`; en ese caso, simplemente salimos del loop y listo. Para el caso de mandar un mensaje, si el socket fue cerrado se levantará un error de que el mismo fue cerrado; en este caso, simplemente chequeamos con la variable `is_closed` si fue cerrado, para ver si no es un falso positivo y, si no es así, salimos del loop.
+
+Para cuando queramos leer un mensaje, este se desbloqueará y mandará el mismo error que antes; nuevamente chequeamos con la variable `is_closed` si fue cerrado, para ver si no es un falso positivo y, si no es así, salimos del loop. En el loop debemos agregar a las condiciones una de si el socket fue cerrado o no con la variable `is_closed` para que no intente establecer una conexión con el servidor. Dejamos un ejemplo con pseudocódigo de cómo sería. ³
+
+```go
+currMsgNumber // Número del mensaje actual
+totalMsgNumber // Total de mensajes a ser mandados
+isClosed // Variable para detectar si el socket de aceptación está cerrado
+err // Variable para guardar el valor de un error
+conn // Conexión con el servidor
+msg // Mensaje a mandar
+--------------------------------------------------------------------------
+
+func ClientLoop() {
+  for currMsgNumber := 1; currMsgNumber <= totalMsgNumber && !isClosed; currMsgNumber++ {
+  if err := createConnection(); err != nil || isClosed {
+    return
+  }
+
+  if _, err := conn.sendMessage(msg); err != nil {
+    if isClosed { return }
+    conn.Close()
+    return
+  }
+
+  resp, err := conn.recvMessage()
+  conn.Close() 
+  if err != nil {
+    if isClosed { return }
+    return
+  }
+  }
+}
+```
+
+Finalmente, expliquemos cómo funcionan las _signals_ en GoLang. La forma de usar las _signals_ es creando una _go routine_, que sería como un hilo de ejecución, y esta espera para _poppear_ un elemento de una _queue_ bloqueante. Cuando la _signal_ se "dispara", se desbloquea el hilo y hace el _graceful shutdown_. ⁴
+
+#### Referencias
+
+1. socket — Low-level networking interface. (n.d.). Python Documentation. Retrieved August 23, 2025, from [https://docs.python.org/3/library/socket.html](https://docs.python.org/3/library/socket.html)
+2. signal — Set handlers for asynchronous events. (n.d.). Python Documentation. Retrieved August 23, 2025, from [https://docs.python.org/3/library/signal.html](https://docs.python.org/3/library/signal.html)
+3. net package - net - Go Packages. (n.d.). Retrieved August 23, 2025, from [https://pkg.go.dev/net](https://pkg.go.dev/net)
+4. Go by Example: Signals. (n.d.). Retrieved August 23, 2025, from [https://gobyexample.com/signals](https://gobyexample.com/signals)
 
 ## Instrucciones de uso
 El repositorio cuenta con un **Makefile** que incluye distintos comandos en forma de targets. Los targets se ejecutan mediante la invocación de:  **make \<target\>**. Los target imprescindibles para iniciar y detener el sistema son **docker-compose-up** y **docker-compose-down**, siendo los restantes targets de utilidad para el proceso de depuración.
