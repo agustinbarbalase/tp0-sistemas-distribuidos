@@ -11,7 +11,7 @@ class Server:
         self._is_closed = False
 
         def handle_signal(signum, frame):
-            self.shutdown()
+            self.__shutdown()
 
         signal.signal(signal.SIGTERM, handle_signal)
         signal.signal(signal.SIGINT, handle_signal)
@@ -30,14 +30,12 @@ class Server:
             if self._is_closed: break
             self.__handle_client_connection(client_sock)
 
-    def shutdown(self):
+    def __shutdown(self):
         """
         Gracefull shutdown
 
         Function used for graceful shutdown of the server
         """
-        if self._is_closed: return
-
         logging.info('action: shutdown | result: in_progress')
         self._is_closed = True
         self._server_socket.shutdown(socket.SHUT_RDWR)
