@@ -79,6 +79,10 @@ func (c *Client) handleSignal() {
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
+	if err := c.createClientSocket(); err != nil {
+		return
+	}
+
 	protocol := NewProtocol(c.conn)
 
 	document := os.Getenv("DOCUMENTO")
