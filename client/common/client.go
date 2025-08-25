@@ -79,44 +79,40 @@ func (c *Client) handleSignal() {
 
 // StartClientLoop Send bets
 func (c *Client) StartClientLoop() {
-	for msgID := 1; msgID <= c.config.LoopAmount && !c.isClosed; msgID++ {
-		if err := c.createClientSocket(); err != nil || c.isClosed {
-			return
-		}
-		
-		protocol := NewProtocol(c.conn)
-		
-		number, err := strconv.Atoi(os.Getenv("NUMERO"))
-		if err != nil {
-			log.Error("action: numero_invalido | numero: %v | error: %v", os.Getenv("NUMERO"), err)
-		}
-
-		bet := &Bet{
-			FirstName: os.Getenv("NOMBRE"),
-			LastName:  os.Getenv("APELLIDO"),
-			Document:  os.Getenv("DOCUMENTO"),
-			Birthdate: os.Getenv("NACIMIENTO"),
-			Number:    number,
-		}
-
-		if err := protocol.SendBet(bet); err != nil {
-			if !c.isClosed {
-				log.Error("action: apuesta_enviada | result: fail | dni: %v | numero: %v | error: %v", bet.Document, bet.Number, err)
-			}
-			return
-		}
-		
-		if err := protocol.RecvOKMsg(); err != nil {
-			if !c.isClosed {
-				log.Error("action: apuesta_enviada | result: fail | dni: %v | numero: %v | error: %v", bet.Document, bet.Number, err)
-			}
-			return
-		}
-
-		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", bet.Document, bet.Number)
-		c.conn.Close()
-		time.Sleep(c.config.LoopPeriod)
+	if err := c.createClientSocket(); err != nil || c.isClosed {
+		return
 	}
 	
-	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+	protocol := NewProtocol(c.conn)
+	
+	number, err := strconv.Atoi(os.Getenv("NUMERO"))
+	if err != nil {
+		log.Error("action: numero_invalido | numero: %v | error: %v", os.Getenv("NUMERO"), err)
+	}
+
+	bet := &Bet{
+		FirstName: os.Getenv("NOMBRE"),
+		LastName:  os.Getenv("APELLIDO"),
+		Document:  os.Getenv("DOCUMENTO"),
+		Birthdate: os.Getenv("NACIMIENTO"),
+		Number:    number,
+	}
+
+	if err := protocol.SendBet(bet); err != nil {
+		if !c.isClosed {
+			log.Error("action: apuesta_enviada | result: fail | dni: %v | numero: %v | error: %v", bet.Document, bet.Number, err)
+		}
+		return
+	}
+	
+	if err := protocol.RecvOKMsg(); err != nil {
+		if !c.isClosed {
+			log.Error("action: apuesta_enviada | result: fail | dni: %v | numero: %v | error: %v", bet.Document, bet.Number, err)
+		}
+		return
+	}
+
+	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", bet.Document, bet.Number)
+	c.conn.Close()
+	time.Sleep(c.config.LoopPeriod)
 }
