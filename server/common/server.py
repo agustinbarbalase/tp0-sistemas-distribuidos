@@ -64,7 +64,6 @@ class Server:
             protocol.send_failure_msg()
         except ConnectionClose as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
-            protocol.send_failure_msg()
         except Exception as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
             protocol.send_failure_msg()
