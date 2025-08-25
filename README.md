@@ -18,6 +18,10 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
       - [Servidor](#servidor)
       - [Cliente](#cliente)
       - [Referencias](#referencias-2)
+    - [Ejercicio N°5](#ejercicio-n5)
+      - [Protocolo](#protocolo)
+      - [Cuestiones para desarrollar un protocolo](#cuestiones-para-desarrollar-un-protocolo)
+      - [Referencias](#referencias-3)
   - [Instrucciones de uso](#instrucciones-de-uso)
     - [Servidor](#servidor-1)
     - [Cliente](#cliente-1)
@@ -28,7 +32,7 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
     - [Ejercicio N°3:](#ejercicio-n3-1)
     - [Ejercicio N°4:](#ejercicio-n4-1)
   - [Parte 2: Repaso de Comunicaciones](#parte-2-repaso-de-comunicaciones)
-    - [Ejercicio N°5:](#ejercicio-n5)
+    - [Ejercicio N°5:](#ejercicio-n5-1)
       - [Cliente](#cliente-2)
       - [Servidor](#servidor-2)
       - [Comunicación:](#comunicación)
@@ -308,6 +312,180 @@ Finalmente, expliquemos cómo funcionan las _signals_ en GoLang. La forma de usa
 2. signal — Set handlers for asynchronous events. (n.d.). Python Documentation. Retrieved August 23, 2025, from [https://docs.python.org/3/library/signal.html](https://docs.python.org/3/library/signal.html)
 3. net package - net - Go Packages. (n.d.). Retrieved August 23, 2025, from [https://pkg.go.dev/net](https://pkg.go.dev/net)
 4. Go by Example: Signals. (n.d.). Retrieved August 23, 2025, from [https://gobyexample.com/signals](https://gobyexample.com/signals)
+
+### Ejercicio N°5
+
+En esta parte hablaremos sobre el desarrollo del protocolo, cuestiones generales relacionadas a la hora de desarrollar un protocolo, como así también cuestiones de implementación del lado del cliente como del servidor. Empezaremos primero hablando sobre cómo está desarrollado el protocolo, qué mensajes tiene y qué mensajes espera cada una de las partes para reaccionar de acuerdo a ello.
+
+#### Protocolo
+
+El protocolo desarrollado bajo este ejercicio consiste en 3 simples mensajes, el primero es la apuesta (Bet) en sí, el segundo corresponde con un mensaje Ok y por último un mensaje de Fail. Los mensajes tienen dos partes: una cabecera (header) y un cuerpo (body). El _header_ tiene tamaño de 1 byte y permite diferenciar qué mensaje estamos enviando, por ejemplo para saber que estamos enviando o recibiendo una apuesta tenemos reservado el 1 (0x01) para las apuestas. A continuación dejamos el cuadro con cada uno de los 3 posibles _headers_.
+
+| Tipo de mensaje | Valor del _header_ |
+|-----------------|--------------------|
+| BET             | `0x01`             |
+| OK              | `0x02`             |
+| FAIL            | `0x03`             |
+
+Ahora el _body_ es el resto del mensaje, dependiendo del _header_ que lea el protocolo este sabrá cómo está compuesto el resto del _body_. Los mensajes de tipo `OK` y `FAIL` no tienen un _body_ asociado. Distinto es el caso para el mensaje `BET` que sí tiene un _body_ asociado. Veamos cómo está hecho el mensaje completo, a través de un diagrama de cada campo.
+
+```txt
+  +----------------------------------+
+  |         Header (1 byte)          |    
+  +----------------------------------+
+  |                                  |
+  |   Size of First name (2 bytes)   |
+  |                                  |
+  +----------------------------------+
+  |                                  |
+  |                                  |
+  |   First name (variable length)   |
+  |                                  |   
+  |                                  |
+  +----------------------------------+
+  |                                  |
+  |   Size of Last name (2 bytes)    |
+  |                                  |
+  +----------------------------------+
+  |                                  |
+  |                                  |
+  |   Last name (variable length)    |
+  |                                  |   
+  |                                  |
+  +----------------------------------+
+  |                                  |
+  |        Document (8 bytes)        |
+  |                                  |   
+  +----------------------------------+
+  |                                  |
+  |          Date (10 bytes)         |
+  |                                  |   
+  +----------------------------------+
+  |                                  |
+  |         Number (4 bytes)         |
+  |                                  |   
+  +----------------------------------+
+```
+
+Con este diagrama, expliquemos cada uno de los campos:
+
+- El `header` corresponde al tipo de mensaje
+- El `Size of First name` corresponde al número de caracteres que ocupa el nombre
+- El `First name` es el nombre en sí
+- El `Size of Last name` corresponde al número de caracteres que ocupa el apellido
+- El `Last name` es el apellido en sí
+- El `Documento` corresponde al número de documento
+- El `Date` es la fecha de la apuesta
+- El `Number` es el número de la apuesta
+
+Ahora expliquemos por qué elegimos cada uno de estos tamaños fijos o variables para cada uno de los campos. En primer lugar tenemos tanto el nombre como el apellido, obviamente pueden tener un largo variable por lo tanto necesitamos un primer campo para indicar cuánto debemos leer a través del _socket_. En cuanto al resto de campos, tenemos 8 bytes para el documento, eso se debe al tamaño de estos ya que tiene 8 números. Para la fecha pasa lo mismo por el formato (`YYYY-MM-DD`), son: 4 + 2 + 2 + 2 = 10. Y el número de apuesta puede ser una apuesta de 4 o menos números.
+
+Ahora pasemos a analizar cómo es el estado de cada mensaje, es decir cómo responde cada entidad ante la llegada de cada mensaje. Existe solamente dos caminos: Un caso donde la apuesta llega sin problema, por lo que el servidor contesta con el mensaje `OK` asegurándole al cliente que su apuesta fue guardada exitosamente. No existe una política de reenvío de apuestas, dado que estamos trabajando sobre un _TCP socket_ por lo que el envío de mensajes es seguro. Dejamos un diagrama de secuencia de los mensajes, en el caso exitoso.
+
+```txt
+  +-----------+                      +------------+
+  |  Cliente  |                      |  Servidor  |
+  +-----------+                      +------------+
+        V                                  V
+        |            (BET msg)             |
+        | --------------->---------------- |
+        V                                  V
+        |            (OK msg)              |
+        | ---------------<---------------- |
+        V                                  V
+        |                                  |
+```
+
+Por otro lado, existe la posibilidad de que la apuesta no haya sido almacenada correctamente, dado que hubo algún problema del lado del servidor ya sea con la lectura del mensaje o porque no haya podido almacenar en un archivo correctamente la apuesta. En ese caso, el servidor responde con un mensaje `FAIL` al cliente para que sepa que su apuesta no ha sido almacenada y lo reintente u haga otra cosa. El diagrama de secuencias, para este caso, sería de la siguiente manera.
+
+```txt
+  +-----------+                      +------------+
+  |  Cliente  |                      |  Servidor  |
+  +-----------+                      +------------+
+        V                                  V
+        |            (BET msg)             |
+        | --------------->---------------- |
+        V                                  V
+        |           (FAIL msg)             |
+        | ---------------<---------------- |
+        V                                  V
+        |                                  |
+```
+
+#### Cuestiones para desarrollar un protocolo
+
+Para desarrollar este protocolo hubo que tener en cuenta dos cuestiones muy importantes, la primera es la cuestión relacionada con el _short read y short write_ ¹ y la segunda con el envío de bytes a través de una red (_host-to-network_) y la recepción de esos (_network-to-host_). Empecemos con la primera cuestión. Básicamente cuando mandamos mensajes a través de un _socket_, existe la posibilidad de que este no envíe todos los bytes que le pedimos, es decir la librería en cuestión no nos asegura mandar el mensaje completo, esto puede llevar a que el servidor o el cliente se queden bloqueados esperando bytes que nunca fueron enviados. Existe una solución para eso, escribamos un pseudocódigo y veamos cómo funciona
+
+```python
+msg # Mensaje a ser enviado/recibido
+sock # Socket para enviar/recibir los mensajes
+length # Tamaño del mensaje a ser enviado/recibido
+#-------------------------------------------------------------------------
+
+def recv_all(length):
+  msg = ""
+  readed = 0
+
+  while readed < length:
+   chunk = socket.recv(length - readed)
+   if not chunk:
+    raise Error("Closed connection")
+   msg += chunk
+   readed += len(chunk)
+
+  return msg
+
+def send_all(msg, length):
+  writed = 0
+
+  while writed < length:
+   size = socket.send(msg[writed:])
+   if size < 0:
+    raise Error("Closed connection")
+   writed += size
+```
+
+Las librerías de _sockets_ devuelven cuántos bytes se leyeron/escribieron, entonces a partir de eso podremos saber cuántos bytes faltan por enviar/recibir, por eso estamos en un loop que nos asegura que hayamos leído todo el mensaje que esperamos recibir/enviar. En el caso de Python, nos devuelven lo que recibieron, sino que devuelven el mensaje en sí, sabiendo el tamaño del mensaje parcial recibido (_chunk_) podremos saber cuánto leímos. ² Particularmente en Python, existe una función implementada por el _socket_ llamada `sendall()` que nos asegura enviar todos los bytes, por lo que el problema del _short write_ en Python está resuelto. ³
+
+Respecto al problema del envío o recepción de mensajes a través de la red, tiene que ver con cómo implementan los números las computadoras. Algunas usan el formato _big endian_, es decir el byte más significativo primero, o la opción de _little endian_, o sea el byte menos significativo primero. Esa diferencia nos trae la obligación de asegurarnos el correcto envío y recepción de los bytes a través de la red. Es por eso que existe la necesidad de implementar una función que transforme del _endianess_ de la computadora (_host_) a una a través de la red (_network_), estas funciones se llaman _host-to-network_ (`hton`), lo mismo aplica al revés, es decir _network-to-host_ (`ntoh`).
+
+Para el caso de este protocolo, lo necesitamos para bytes relacionados con los tamaños del `nombre` y el `apellido`, la convención es utilizar _big endian_ para la _network_. ⁴ Así que las funciones _hton_ y _ntoh_ deberán utilizar una transformación a _big endian_ o decir que determinado conjunto de bytes es _big endian_. Como los tamaños son de 2 bytes, a estas funciones particularmente se las llama `htons()` y `ntohs()`, la `s` es por `short` y son números de 16 bits (2 bytes) sin signo. Para Python ya existe una forma nativa de transformar las cosas en bytes según el _endianess_, ⁵ para el caso de Go usamos una librería de la biblioteca estándar llamada `encoding/binary`. ⁶
+
+Por último, hablemos brevemente de cómo están separadas las responsabilidades en cada parte. Básicamente en ambas existe una implementación de una clase o estructura llamada `Protocol`, que lo que hace es darnos la funcionalidad necesaria para enviar una apuesta o un mensaje avisando si todo fue exitoso o no. Digamos que el cliente o el servidor, respectivamente, se comunican con esta capa y esta última se encarga de serializar y enviar los mensajes o de recibirlos y deserializarlos para separar correctamente las responsabilidades entre la lógica de negocio y la comunicación. En ambos casos, necesitan que les proveamos un _socket_ por donde se envían o reciben los mensajes y ellos se encargan del resto. Dejamos un diagrama simplificado de cómo funciona
+
+```txt
+          Logical layer                                           Logical layer  
+        +----------------+                                     +----------------+
+        | +------------+ |                                     | +------------+ |
+        | |            | |                                     | |            | |
+        | |   Client   | |                                     | |   Server   | |
+        | |            | |                                     | |            | |
+        | +------------+ |                                     | +------------+ |
+        +-----|-----^----+                                     +----|-----^-----+
+              |     |                                               |     |
+  (send bet)  |     |  (recv ok/failure)         (send ok/failure)  |     |  (recv bet)
+              |     |                                               |     |
+        +-----|-----|-----------------------------------------------|-----|-----+
+        |     v     |                                               v     |     |
+        | +------------+         (send msg to server)            +------------+ |
+        | |            |---------------------------------------->|            | |
+        | |  Protocol  |                                         |  Protocol  | |
+        | |            |<----------------------------------------|            | |
+        | +------------+         (send msg to client)            +------------+ |
+        |                                                                       |
+        +-----------------------------------------------------------------------+
+                                  Comunication layer
+```
+
+#### Referencias
+
+1. File Descriptors – CS 61 2018. (n.d.). Retrieved August 24, 2025, from [https://cs61.seas.harvard.edu/site/2018/FileDescriptors/](https://cs61.seas.harvard.edu/site/2018/FileDescriptors/)
+2. recv — Low-level networking interface. (n.d.-c). Python Documentation. Retrieved August 24, 2025, from [https://docs.python.org/3/library/socket.html#socket.socket.recv](https://docs.python.org/3/library/socket.html#socket.socket.recv)
+3. sendall — Low-level networking interface. (n.d.-b). Python Documentation. Retrieved August 24, 2025, from [https://docs.python.org/3/library/socket.html#socket.socket.sendall](https://docs.python.org/3/library/socket.html#socket.socket.sendall)
+4. htons(3) - Linux man page. (n.d.). Retrieved August 24, 2025, from [https://linux.die.net/man/3/htons](https://linux.die.net/man/3/htons)
+5. Built-in Types. (n.d.). Python Documentation. Retrieved August 24, 2025, from [https://docs.python.org/3/library/stdtypes.html](https://docs.python.org/3/library/stdtypes.html)
+6. binary package - encoding/binary - Go Packages. (n.d.). Retrieved August 24, 2025, from [https://pkg.go.dev/encoding/binary](https://pkg.go.dev/encoding/binary)
+
 
 ## Instrucciones de uso
 El repositorio cuenta con un **Makefile** que incluye distintos comandos en forma de targets. Los targets se ejecutan mediante la invocación de:  **make \<target\>**. Los target imprescindibles para iniciar y detener el sistema son **docker-compose-up** y **docker-compose-down**, siendo los restantes targets de utilidad para el proceso de depuración.
