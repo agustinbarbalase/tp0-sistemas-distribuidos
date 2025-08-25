@@ -26,7 +26,7 @@ const (
 type Bet struct {
 	FirstName string
 	LastName  string
-	Document  string
+	Document  int
 	Birthdate string
 	Number    int
 }

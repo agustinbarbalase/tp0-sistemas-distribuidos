@@ -90,10 +90,15 @@ func (c *Client) StartClientLoop() {
 		log.Error("action: numero_invalido | numero: %v | error: %v", os.Getenv("NUMERO"), err)
 	}
 
+	document, err := strconv.Atoi(os.Getenv("DOCUMENTO"))
+	if err != nil {
+		log.Error("action: documento_invalido | documento: %v | error: %v", os.Getenv("DOCUMENTO"), err)
+	}
+
 	bet := &Bet{
 		FirstName: os.Getenv("NOMBRE"),
 		LastName:  os.Getenv("APELLIDO"),
-		Document:  os.Getenv("DOCUMENTO"),
+		Document:  document,
 		Birthdate: os.Getenv("NACIMIENTO"),
 		Number:    number,
 	}
