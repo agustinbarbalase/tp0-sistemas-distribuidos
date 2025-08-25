@@ -319,68 +319,39 @@ En esta parte hablaremos sobre el desarrollo del protocolo, cuestiones generales
 
 #### Protocolo
 
-El protocolo desarrollado bajo este ejercicio consiste en 3 simples mensajes, el primero es la apuesta (Bet) en sí, el segundo corresponde con un mensaje Ok y por último un mensaje de Fail. Los mensajes tienen dos partes: una cabecera (header) y un cuerpo (body). El _header_ tiene tamaño de 1 byte y permite diferenciar qué mensaje estamos enviando, por ejemplo para saber que estamos enviando o recibiendo una apuesta tenemos reservado el 1 (0x01) para las apuestas. A continuación dejamos el cuadro con cada uno de los 3 posibles _headers_.
+El protocolo desarrollado bajo este ejercicio consiste en 3 simples mensajes: el primero es la apuesta (`BET`) en sí, el segundo corresponde a un mensaje `OK` y, por último, un mensaje de `FAIL`. Los mensajes tienen dos partes: una cabecera (header) y un cuerpo (body). El _header_ tiene un _code message_ de 1 byte y permite diferenciar qué mensaje estamos enviando, y un _message length_ de 2 bytes que determina de qué tamaño es el mensaje. A continuación, dejamos un cuadro con cada uno de los 3 posibles _code message_.
 
-| Tipo de mensaje | Valor del _header_ |
-|-----------------|--------------------|
-| BET             | `0x01`             |
-| OK              | `0x02`             |
-| FAIL            | `0x03`             |
+| Tipo de mensaje | Valor del _code message_ |
+|-----------------|--------------------------|
+| BET             | `0x01`                   |
+| OK              | `0x02`                   |
+| FAIL            | `0x03`                   |
 
-Ahora el _body_ es el resto del mensaje, dependiendo del _header_ que lea el protocolo este sabrá cómo está compuesto el resto del _body_. Los mensajes de tipo `OK` y `FAIL` no tienen un _body_ asociado. Distinto es el caso para el mensaje `BET` que sí tiene un _body_ asociado. Veamos cómo está hecho el mensaje completo, a través de un diagrama de cada campo.
+Ahora, el _body_ es el resto del mensaje. Dependiendo del _header_ que lea el protocolo, este sabrá cómo está compuesto el resto del _body_. Los mensajes de tipo `OK` y `FAIL` no tienen un _body_ asociado, ni tampoco tienen un _message length_; solamente son su _code message_. Distinto es el caso para el mensaje `BET`, que sí tiene un _body_ asociado. Veamos cómo está hecho el mensaje completo, a través de un diagrama de cada campo.
 
 ```txt
   +----------------------------------+
-  |         Header (1 byte)          |    
+  |       Code message (1 byte)      |    
   +----------------------------------+
   |                                  |
-  |   Size of First name (2 bytes)   |
-  |                                  |
-  +----------------------------------+
-  |                                  |
-  |                                  |
-  |   First name (variable length)   |
-  |                                  |   
+  |     Message length (2 bytes)     |
   |                                  |
   +----------------------------------+
   |                                  |
-  |   Size of Last name (2 bytes)    |
-  |                                  |
-  +----------------------------------+
-  |                                  |
-  |                                  |
-  |   Last name (variable length)    |
-  |                                  |   
-  |                                  |
-  +----------------------------------+
-  |                                  |
-  |        Document (8 bytes)        |
-  |                                  |   
-  +----------------------------------+
-  |                                  |
-  |          Date (10 bytes)         |
-  |                                  |   
-  +----------------------------------+
-  |                                  |
-  |         Number (4 bytes)         |
+  |    Message (variable length)     |
   |                                  |   
   +----------------------------------+
 ```
 
 Con este diagrama, expliquemos cada uno de los campos:
 
-- El `header` corresponde al tipo de mensaje
-- El `Size of First name` corresponde al número de caracteres que ocupa el nombre
-- El `First name` es el nombre en sí
-- El `Size of Last name` corresponde al número de caracteres que ocupa el apellido
-- El `Last name` es el apellido en sí
-- El `Documento` corresponde al número de documento
-- El `Date` es la fecha de la apuesta
-- El `Number` es el número de la apuesta
+- El `Code message` corresponde al tipo de mensaje. (_header_)
+- El `Message length` corresponde al tamaño del mensaje. (_header_)
+- El `Message` es donde está almacenado el mensaje en sí y tiene el tamaño del valor del `Message length`. (_body_)
 
-Ahora expliquemos por qué elegimos cada uno de estos tamaños fijos o variables para cada uno de los campos. En primer lugar tenemos tanto el nombre como el apellido, obviamente pueden tener un largo variable por lo tanto necesitamos un primer campo para indicar cuánto debemos leer a través del _socket_. En cuanto al resto de campos, tenemos 8 bytes para el documento, eso se debe al tamaño de estos ya que tiene 8 números. Para la fecha pasa lo mismo por el formato (`YYYY-MM-DD`), son: 4 + 2 + 2 + 2 = 10. Y el número de apuesta puede ser una apuesta de 4 o menos números.
+Ahora, dentro del `Message` almacenamos la apuesta a través de un separador que nos permite distinguir cada uno de los campos de la apuesta en sí. El separador utilizado fue `;`. Entonces, para leer eso, simplemente debemos leer según el `Message length` y _splitear_ con el separador en cuestión. El mensaje tiene el siguiente formato: `AgencyID;FirstName;LastName;Document;Birthdate;Number`, los cuales corresponden a cada uno de los diferentes parámetros de la apuesta.
 
-Ahora pasemos a analizar cómo es el estado de cada mensaje, es decir cómo responde cada entidad ante la llegada de cada mensaje. Existe solamente dos caminos: Un caso donde la apuesta llega sin problema, por lo que el servidor contesta con el mensaje `OK` asegurándole al cliente que su apuesta fue guardada exitosamente. No existe una política de reenvío de apuestas, dado que estamos trabajando sobre un _TCP socket_ por lo que el envío de mensajes es seguro. Dejamos un diagrama de secuencia de los mensajes, en el caso exitoso.
+Ahora pasemos a analizar cómo es el estado de cada mensaje, es decir, cómo responde cada entidad ante la llegada de cada mensaje. Existen solamente dos caminos: un caso donde la apuesta llega sin problema, por lo que el servidor contesta con el mensaje `OK` asegurándole al cliente que su apuesta fue guardada exitosamente. No existe una política de reenvío de apuestas, dado que estamos trabajando sobre un _TCP socket_, por lo que el envío de mensajes es seguro. Dejamos un diagrama de secuencia de los mensajes en el caso exitoso.
 
 ```txt
   +-----------+                      +------------+
