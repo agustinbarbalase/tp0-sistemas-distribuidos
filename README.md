@@ -327,7 +327,7 @@ El protocolo desarrollado bajo este ejercicio consiste en 3 simples mensajes: el
 | OK              | `0x02`                   |
 | FAIL            | `0x03`                   |
 
-Ahora, el _body_ es el resto del mensaje. Dependiendo del _header_ que lea el protocolo, este sabrá cómo está compuesto el resto del _body_. Los mensajes de tipo `OK` y `FAIL` no tienen un _body_ asociado, ni tampoco tienen un _message length_; solamente son su _code message_. Distinto es el caso para el mensaje `BET`, que sí tiene un _body_ asociado. Veamos cómo está hecho el mensaje completo, a través de un diagrama de cada campo.
+Ahora, el _body_ es el resto del mensaje. Dependiendo del _header_ que lea el protocolo, este sabrá cómo está compuesto el resto del _body_. Los mensajes de tipo `OK` y `FAIL` no tienen un _body_ asociado, ni tampoco tienen un _message length_; solamente son su _code message_. Distinto es el caso para el mensaje `BET`, que sí tiene un _body_ asociado y un _message length_. Veamos cómo está hecho el mensaje completo, a través de un diagrama de cada campo.
 
 ```txt
   +----------------------------------+
@@ -343,7 +343,7 @@ Ahora, el _body_ es el resto del mensaje. Dependiendo del _header_ que lea el pr
   +----------------------------------+
 ```
 
-Con este diagrama, expliquemos cada uno de los campos:
+Con este diagrama, expliquemos el mensaje `BET` con cada uno de los campos:
 
 - El `Code message` corresponde al tipo de mensaje. (_header_)
 - El `Message length` corresponde al tamaño del mensaje. (_header_)
