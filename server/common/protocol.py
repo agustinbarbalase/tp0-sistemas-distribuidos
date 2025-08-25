@@ -22,15 +22,15 @@ class Protocol:
     """
 
     # --- Field sizes ---
-    SIZE_HEADER_BYTES   =  1   # Size (in bytes) of the message header
-    SIZE_LENGTH_BYTES   =  2   # Size (in bytes) for message length
+    SIZE_HEADER_BYTES   =  1   # Size of the message header
+    SIZE_LENGTH_BYTES   =  2   # Size for message length
 
     # --- Headers ---
     BET_HEADER: bytes  = b"\x01"  # Header indicating a bet message
     OK_HEADER: bytes   = b"\x02"  # Header indicating a success response
     FAIL_HEADER: bytes = b"\x03"  # Header indicating a failure response
 
-    # -- Constants --
+    # -- Constants for formatting --
     SEPARATOR: str          = ";"  # Message separator
     NUM_OF_ATTRIBUTES: int  =  5   # Number of attributes in a bet message
 

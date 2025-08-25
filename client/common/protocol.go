@@ -6,13 +6,10 @@ import (
 	"net"
 )
 
-// Sizes of the different fields (in bytes)
+// Sizes of the different fields
 const (
 	SIZE_HEADER_BYTES    = 1  // Size of the message header
-	SIZE_FIELD_BYTES     = 2  // Size used to encode variable-length fields (e.g., names)
-	SIZE_DOCUMENT_BYTES  = 8  // Size of the document field (DNI)
-	SIZE_DATE_BYTES      = 10 // Size of the birthdate field
-	SIZE_NUMBER_BYTES    = 4  // Size of the bet number
+	SIZE_LENGTH_BYTES    = 2  // Size for message length
 )
 
 // Header values for messages
@@ -20,6 +17,12 @@ const (
 	BET_HEADER  = 0x01  // Header indicating a bet message
 	OK_HEADER   = 0x02  // Header indicating a success response
 	FAIL_HEADER = 0x03  // Header indicating a failure response
+)
+
+// Consts for message formatting
+const (
+	SEPARATOR         = ";"  // Message separator
+	NUM_OF_ATTRIBUTES =  5   // Number of attributes in a bet message
 )
 
 // Bet represents the data structure of a betting message
@@ -39,7 +42,7 @@ type Protocol struct {
 // htons converts an integer to a 2-byte slice in big-endian order.
 // Used for encoding variable-length fields.
 func htons(value uint16) []byte {
-	msg := make([]byte, SIZE_FIELD_BYTES)
+	msg := make([]byte, 2)
 	binary.BigEndian.PutUint16(msg, value)
 	return msg
 }
@@ -79,53 +82,51 @@ func (p *Protocol) writeAll(msg []byte, totalLength int) error {
 	return nil
 }
 
-// SendBet sends a bet message to the server following the defined protocol.
+// serializeBet serializes a Bet struct into a string using a predefined separator.
+// The resulting string contains the Bet's FirstName, LastName, Document, Birthdate, and Number fields,
+// concatenated in order and separated by the SEPARATOR constant.
+// This format is used for transmitting bet data over the network or storing it in a text-based format.
+func (p *Protocol) serializeBet(bet *Bet) string {
+	serialized := fmt.Sprintf("%s%s%s%s%d%s%s%s%d",
+		bet.FirstName, SEPARATOR,
+		bet.LastName, SEPARATOR,
+		bet.Document, SEPARATOR,
+		bet.Birthdate, SEPARATOR,
+		bet.Number,
+	)
+
+	return serialized
+}
+
+// SendBet sends a bet message to the server using the defined protocol format.
+// The message consists of:
+//   - A single-byte header indicating a bet message.
+//   - A 2-byte representing the length of the serialized bet.
+//   - The serialized bet data as a string, with fields separated by SEPARATOR.
 //
-// Message format:
-//   - Header (1 byte)
-//   - First name length (2 bytes) + string
-//   - Last name length (2 bytes) + string
-//   - Document (8 bytes)
-//   - Birthdate (10 bytes)
-//   - Number (4 bytes, zero-padded string)
+// The bet fields are serialized in the following order:
+//   FirstName;LastName;Document;Birthdate;Number
+//
+// Returns an error if any part of the message fails to send.
 func (p *Protocol) SendBet(bet *Bet) error {
-	// Header
-	header := []byte{BET_HEADER}
-	if err := p.writeAll(header, SIZE_HEADER_BYTES); err != nil {
+	// Send heeader
+	messageHeader := []byte{BET_HEADER}
+	if err := p.writeAll(messageHeader, SIZE_HEADER_BYTES); err != nil {
 		return err
 	}
 
-	// First name
-	sizeFirstName := htons(uint16(len(bet.FirstName)))
-	if err := p.writeAll(sizeFirstName, SIZE_FIELD_BYTES); err != nil {
-		return err
-	}
-	if err := p.writeAll([]byte(bet.FirstName), len(bet.FirstName)); err != nil {
+	betSerialize := p.serializeBet(bet)
+	betSerializeLength := len(betSerialize)
+
+	// Send length
+	messageLength := []byte(htons(uint16(betSerializeLength)))
+	if err := p.writeAll(messageLength, SIZE_LENGTH_BYTES); err != nil {
 		return err
 	}
 
-	// Last name
-	sizeLastName := htons(uint16(len(bet.LastName)))
-	if err := p.writeAll(sizeLastName, SIZE_FIELD_BYTES); err != nil {
-		return err
-	}
-	if err := p.writeAll([]byte(bet.LastName), len(bet.LastName)); err != nil {
-		return err
-	}
-
-	// Document
-	if err := p.writeAll([]byte(bet.Document), SIZE_DOCUMENT_BYTES); err != nil {
-		return err
-	}
-
-	// Birthdate
-	if err := p.writeAll([]byte(bet.Birthdate), SIZE_DATE_BYTES); err != nil {
-		return err
-	}
-
-	// Number (zero-padded to 4 chars)
-	numberStr := fmt.Sprintf("%04d", bet.Number)
-	if err := p.writeAll([]byte(numberStr), SIZE_NUMBER_BYTES); err != nil {
+	// Send bet serialized
+	messageBetSerilized := []byte(betSerialize)
+	if err := p.writeAll(messageBetSerilized, betSerializeLength); err != nil {
 		return err
 	}
 
