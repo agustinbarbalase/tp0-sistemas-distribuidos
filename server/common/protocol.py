@@ -23,15 +23,16 @@ class Protocol:
 
     # --- Field sizes ---
     SIZE_HEADER_BYTES   =  1   # Size (in bytes) of the message header
-    SIZE_FIELDS_BYTES   =  2   # Size (in bytes) for variable-length field lengths
-    SIZE_DOCUMENT_BYTES =  8   # Size (in bytes) of the document number (DNI)
-    SIZE_DATE_BYTES     =  10  # Size (in bytes) of the birthdate field
-    SIZE_NUMBER_BYTES   =  4   # Size (in bytes) of the bet number
+    SIZE_LENGTH_BYTES   =  2   # Size (in bytes) for message length
 
     # --- Headers ---
     BET_HEADER: bytes  = b"\x01"  # Header indicating a bet message
     OK_HEADER: bytes   = b"\x02"  # Header indicating a success response
     FAIL_HEADER: bytes = b"\x03"  # Header indicating a failure response
+
+    # -- Constants --
+    SEPARATOR: str          = ";"  # Message separator
+    NUM_OF_ATTRIBUTES: int  =  5   # Number of attributes in a bet message
 
     def __init__(self, socket):
         self._socket = socket
@@ -41,28 +42,21 @@ class Protocol:
         Receive a bet message from the client.
 
         The function expects the message to start with a `BET_HEADER`,
-        followed by the fields encoded in the following order:
-        - First name (length + string)
-        - Last name (length + string)
-        - Document number (fixed length)
-        - Birthdate (fixed length)
-        - Number (fixed length)
+        followed by the fields encoded in separated by the following order:
+        - First name
+        - Last name
+        - Document number
+        - Birthdate
+        - Number
         """
         header: bytes = self.__recv_all(Protocol.SIZE_HEADER_BYTES)
         if header != Protocol.BET_HEADER: 
             raise UnexpectedMessage("Invalid header")
 
-        first_name_length: int = self.__ntohs(self.__recv_all(Protocol.SIZE_FIELDS_BYTES))
-        first_name: str = self.__recv_all(first_name_length).decode("utf-8")
+        length: int = self.__ntohs(self.__recv_all(Protocol.SIZE_LENGTH_BYTES))
+        bet_message: bytes = self.__recv_all(length)
 
-        last_name_length: int = self.__ntohs(self.__recv_all(Protocol.SIZE_FIELDS_BYTES))
-        last_name: str = self.__recv_all(last_name_length).decode("utf-8")
-
-        document: str = self.__recv_all(Protocol.SIZE_DOCUMENT_BYTES).decode("utf-8")
-        birthdate: str = self.__recv_all(Protocol.SIZE_DATE_BYTES).decode("utf-8")
-        number: str = self.__recv_all(Protocol.SIZE_NUMBER_BYTES).decode("utf-8")
-
-        return Bet("1", first_name, last_name, document, birthdate, number)
+        return self.__deserialize(bet_message)
 
     def send_success_msg(self) -> None:
         """
@@ -75,6 +69,17 @@ class Protocol:
         Send a failure message to the client.
         """
         self._socket.sendall(Protocol.FAIL_HEADER)
+
+    def __deserialize(self, bytes: bytes) -> Bet:
+        """
+        Deserialize a bet message from the socket.
+        """
+
+        attributes = bytes.decode("utf-8").split(Protocol.SEPARATOR)
+        if len(attributes) != Protocol.NUM_OF_ATTRIBUTES:
+            raise UnexpectedMessage("Invalid bet message format")
+
+        return Bet("1", *attributes)
 
     def __ntohs(self, bytes: bytes) -> int:
         """
