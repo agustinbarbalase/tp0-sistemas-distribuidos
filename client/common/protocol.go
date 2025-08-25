@@ -22,7 +22,7 @@ const (
 // Consts for message formatting
 const (
 	SEPARATOR         = ";"  // Message separator
-	NUM_OF_ATTRIBUTES =  5   // Number of attributes in a bet message
+	NUM_OF_ATTRIBUTES =  6   // Number of attributes in a bet message
 )
 
 // Bet represents the data structure of a betting message
@@ -82,40 +82,39 @@ func (p *Protocol) writeAll(msg []byte, totalLength int) error {
 	return nil
 }
 
-// serializeBet serializes a Bet struct into a string using a predefined separator.
-// The resulting string contains the Bet's FirstName, LastName, Document, Birthdate, and Number fields,
-// concatenated in order and separated by the SEPARATOR constant.
-// This format is used for transmitting bet data over the network or storing it in a text-based format.
-func (p *Protocol) serializeBet(bet *Bet) string {
-	serialized := fmt.Sprintf("%s%s%s%s%d%s%s%s%d",
+// serializeBet serializes a Bet struct and an AgencyID into a string using the predefined separator.
+// The resulting string contains the following fields in order, separated by SEPARATOR:
+//   AgencyID;FirstName;LastName;Document;Birthdate;Number
+// This format is used for transmitting bet data over the network.
+func (p *Protocol) serializeBet(AgencyID string, bet *Bet) string {
+	return fmt.Sprintf("%s%s%s%s%s%s%d%s%s%s%d",
+		AgencyID, SEPARATOR,
 		bet.FirstName, SEPARATOR,
 		bet.LastName, SEPARATOR,
 		bet.Document, SEPARATOR,
 		bet.Birthdate, SEPARATOR,
 		bet.Number,
 	)
-
-	return serialized
 }
 
-// SendBet sends a bet message to the server using the defined protocol format.
+// SendBet sends a bet message to the server using the protocol format.
 // The message consists of:
 //   - A single-byte header indicating a bet message.
-//   - A 2-byte representing the length of the serialized bet.
+//   - A 2-byte length of the serialized bet.
 //   - The serialized bet data as a string, with fields separated by SEPARATOR.
 //
-// The bet fields are serialized in the following order:
-//   FirstName;LastName;Document;Birthdate;Number
+// The serialized bet fields are in the following order:
+//   AgencyID;FirstName;LastName;Document;Birthdate;Number
 //
 // Returns an error if any part of the message fails to send.
-func (p *Protocol) SendBet(bet *Bet) error {
-	// Send heeader
+func (p *Protocol) SendBet(AgencyID string, bet *Bet) error {
+	// Send header
 	messageHeader := []byte{BET_HEADER}
 	if err := p.writeAll(messageHeader, SIZE_HEADER_BYTES); err != nil {
 		return err
 	}
 
-	betSerialize := p.serializeBet(bet)
+	betSerialize := p.serializeBet(AgencyID, bet)
 	betSerializeLength := len(betSerialize)
 
 	// Send length

@@ -30,9 +30,9 @@ class Protocol:
     OK_HEADER: bytes   = b"\x02"  # Header indicating a success response
     FAIL_HEADER: bytes = b"\x03"  # Header indicating a failure response
 
-    # -- Constants for formatting --
+    # --- Constants for formatting ---
     SEPARATOR: str          = ";"  # Message separator
-    NUM_OF_ATTRIBUTES: int  =  5   # Number of attributes in a bet message
+    NUM_OF_ATTRIBUTES: int  =  6   # Number of attributes in a bet message
 
     def __init__(self, socket):
         self._socket = socket
@@ -43,6 +43,7 @@ class Protocol:
 
         The function expects the message to start with a `BET_HEADER`,
         followed by the fields encoded in separated by the following order:
+        - Agency number
         - First name
         - Last name
         - Document number
@@ -79,7 +80,7 @@ class Protocol:
         if len(attributes) != Protocol.NUM_OF_ATTRIBUTES:
             raise UnexpectedMessage("Invalid bet message format")
 
-        return Bet("1", *attributes)
+        return Bet(*attributes)
 
     def __ntohs(self, bytes: bytes) -> int:
         """

@@ -103,7 +103,7 @@ func (c *Client) StartClientLoop() {
 		Number:    number,
 	}
 
-	if err := protocol.SendBet(bet); err != nil {
+	if err := protocol.SendBet(c.config.ID, bet); err != nil {
 		if !c.isClosed {
 			log.Error("action: apuesta_enviada | result: fail | dni: %v | numero: %v | error: %v", bet.Document, bet.Number, err)
 		}
