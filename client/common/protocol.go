@@ -8,8 +8,8 @@ import (
 
 // Sizes of the different fields
 const (
-	SIZE_HEADER_BYTES    = 1  // Size of the message header
-	SIZE_LENGTH_BYTES    = 2  // Size for message length
+	SIZE_HEADER_BYTES = 1  // Size of the message header
+	SIZE_LENGTH_BYTES = 2  // Size for message length
 )
 
 // Header values for messages
@@ -86,9 +86,9 @@ func (p *Protocol) writeAll(msg []byte, totalLength int) error {
 // The resulting string contains the following fields in order, separated by SEPARATOR:
 //   AgencyID;FirstName;LastName;Document;Birthdate;Number
 // This format is used for transmitting bet data over the network.
-func (p *Protocol) serializeBet(AgencyID string, bet *Bet) string {
+func (p *Protocol) serializeBet(agencyID string, bet *Bet) string {
 	return fmt.Sprintf("%s%s%s%s%s%s%d%s%s%s%d",
-		AgencyID, SEPARATOR,
+		agencyID, SEPARATOR,
 		bet.FirstName, SEPARATOR,
 		bet.LastName, SEPARATOR,
 		bet.Document, SEPARATOR,
@@ -107,14 +107,14 @@ func (p *Protocol) serializeBet(AgencyID string, bet *Bet) string {
 //   AgencyID;FirstName;LastName;Document;Birthdate;Number
 //
 // Returns an error if any part of the message fails to send.
-func (p *Protocol) SendBet(AgencyID string, bet *Bet) error {
+func (p *Protocol) SendBet(agencyID string, bet *Bet) error {
 	// Send header
 	messageHeader := []byte{BET_HEADER}
 	if err := p.writeAll(messageHeader, SIZE_HEADER_BYTES); err != nil {
 		return err
 	}
 
-	betSerialize := p.serializeBet(AgencyID, bet)
+	betSerialize := p.serializeBet(agencyID, bet)
 	betSerializeLength := len(betSerialize)
 
 	// Send length
@@ -124,8 +124,8 @@ func (p *Protocol) SendBet(AgencyID string, bet *Bet) error {
 	}
 
 	// Send bet serialized
-	messageBetSerilized := []byte(betSerialize)
-	if err := p.writeAll(messageBetSerilized, betSerializeLength); err != nil {
+	messageBetSerialized := []byte(betSerialize)
+	if err := p.writeAll(messageBetSerialized, betSerializeLength); err != nil {
 		return err
 	}
 
