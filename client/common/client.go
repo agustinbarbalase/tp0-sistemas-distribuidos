@@ -88,11 +88,15 @@ func (c *Client) StartClientLoop() {
 	number, err := strconv.Atoi(os.Getenv("NUMERO"))
 	if err != nil {
 		log.Error("action: numero_invalido | numero: %v | error: %v", os.Getenv("NUMERO"), err)
+		c.conn.Close()
+		return
 	}
 
 	document, err := strconv.Atoi(os.Getenv("DOCUMENTO"))
 	if err != nil {
 		log.Error("action: documento_invalido | documento: %v | error: %v", os.Getenv("DOCUMENTO"), err)
+		c.conn.Close()
+		return
 	}
 
 	bet := &Bet{
