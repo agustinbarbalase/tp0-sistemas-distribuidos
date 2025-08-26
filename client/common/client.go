@@ -77,6 +77,43 @@ func (c *Client) handleSignal() {
 	os.Exit(0)
 }
 
+// createBet constructs a Bet instance using environment variables for its fields.
+// It retrieves and parses the following environment variables:
+//   - NUMERO: the bet number (must be an integer)
+//   - DOCUMENTO: the user's document number (must be an integer)
+//   - NOMBRE: the user's first name
+//   - APELLIDO: the user's last name
+//   - NACIMIENTO: the user's birthdate
+// If NUMERO or DOCUMENTO cannot be parsed as integers, it logs an error and returns nil with the parsing error.
+// Returns a pointer to the created Bet and an error if any occurred during parsing.
+func (c *Client) createBet() (*Bet, error) {
+	number, err := strconv.Atoi(os.Getenv("NUMERO"))
+	if err != nil {
+		log.Error("action: numero_invalido | numero: %v | error: %v", os.Getenv("NUMERO"), err)
+		return nil, err
+	}
+
+	document, err := strconv.Atoi(os.Getenv("DOCUMENTO"))
+	if err != nil {
+		log.Error("action: documento_invalido | documento: %v | error: %v", os.Getenv("DOCUMENTO"), err)
+		return nil, err
+	}
+
+	birthdate := os.Getenv("NACIMIENTO")
+	if _, err := time.Parse(time.DateOnly, birthdate); err != nil {
+		log.Error("action: nacimiento_invalido | nacimiento: %v | error: %v", birthdate, err)
+		return nil, err
+	}
+
+	return &Bet{
+		FirstName: os.Getenv("NOMBRE"),
+		LastName:  os.Getenv("APELLIDO"),
+		Document:  document,
+		Birthdate: birthdate,
+		Number:    number,
+	}, nil
+}
+
 // StartClientLoop Send bets
 func (c *Client) StartClientLoop() {
 	if err := c.createClientSocket(); err != nil || c.isClosed {
@@ -84,32 +121,18 @@ func (c *Client) StartClientLoop() {
 	}
 	
 	protocol := NewProtocol(c.conn)
-	
-	number, err := strconv.Atoi(os.Getenv("NUMERO"))
+	bet, err := c.createBet()
 	if err != nil {
-		log.Error("action: numero_invalido | numero: %v | error: %v", os.Getenv("NUMERO"), err)
-		c.conn.Close()
+		if !c.isClosed {
+			c.conn.Close()
+		}
 		return
-	}
-
-	document, err := strconv.Atoi(os.Getenv("DOCUMENTO"))
-	if err != nil {
-		log.Error("action: documento_invalido | documento: %v | error: %v", os.Getenv("DOCUMENTO"), err)
-		c.conn.Close()
-		return
-	}
-
-	bet := &Bet{
-		FirstName: os.Getenv("NOMBRE"),
-		LastName:  os.Getenv("APELLIDO"),
-		Document:  document,
-		Birthdate: os.Getenv("NACIMIENTO"),
-		Number:    number,
-	}
+	}	
 
 	if err := protocol.SendBet(c.config.ID, bet); err != nil {
 		if !c.isClosed {
 			log.Error("action: apuesta_enviada | result: fail | dni: %v | numero: %v | error: %v", bet.Document, bet.Number, err)
+			c.conn.Close()
 		}
 		return
 	}
@@ -117,11 +140,11 @@ func (c *Client) StartClientLoop() {
 	if err := protocol.RecvOKMsg(); err != nil {
 		if !c.isClosed {
 			log.Error("action: apuesta_enviada | result: fail | dni: %v | numero: %v | error: %v", bet.Document, bet.Number, err)
+			c.conn.Close()
 		}
 		return
 	}
 
 	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", bet.Document, bet.Number)
 	c.conn.Close()
-	time.Sleep(c.config.LoopPeriod)
 }

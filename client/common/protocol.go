@@ -40,7 +40,6 @@ type Protocol struct {
 }
 
 // htons converts an integer to a 2-byte slice in big-endian order.
-// Used for encoding variable-length fields.
 func htons(value uint16) []byte {
 	msg := make([]byte, 2)
 	binary.BigEndian.PutUint16(msg, value)
