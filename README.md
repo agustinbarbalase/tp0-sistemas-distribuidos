@@ -327,7 +327,7 @@ El protocolo desarrollado bajo este ejercicio consiste en 3 simples mensajes: el
 | OK              | `0x02`                   |
 | FAIL            | `0x03`                   |
 
-Ahora, el _body_ es el resto del mensaje. Dependiendo del _header_ que lea el protocolo, este sabrá cómo está compuesto el resto del _body_. Los mensajes de tipo `OK` y `FAIL` no tienen un _body_ asociado, ni tampoco tienen un _message length_; solamente son su _code message_. Distinto es el caso para el mensaje `BET`, que sí tiene un _body_ asociado y un _message length_. Veamos cómo está hecho el mensaje completo, a través de un diagrama de cada campo.
+Ahora, el _body_ es el resto del mensaje. Dependiendo del _header_ que lea el protocolo, este sabrá cómo está compuesto el resto del _body_. El mensaje de tipo `OK` no tiene un _body_ asociado, ni tampoco tiene un _message length_; solamente consiste en su _code message_. Distinto es el caso para los mensajes `BET` y `FAIL`, que sí tienen un _body_ asociado y un _message length_. Veamos cómo está compuesto el mensaje completo, a través de un diagrama de cada campo:
 
 ```txt
   +----------------------------------+
@@ -345,11 +345,11 @@ Ahora, el _body_ es el resto del mensaje. Dependiendo del _header_ que lea el pr
 
 Con este diagrama, expliquemos el mensaje `BET` con cada uno de los campos:
 
-- El `Code message` corresponde al tipo de mensaje. (_header_)
-- El `Message length` corresponde al tamaño del mensaje. (_header_)
-- El `Message` es donde está almacenado el mensaje en sí y tiene el tamaño del valor del `Message length`. (_body_)
+- El `Code message` corresponde al tipo de mensaje (_header_).
+- El `Message length` corresponde al tamaño del mensaje (_header_).
+- El `Message` es donde está almacenado el contenido en sí y tiene el tamaño especificado por el valor de `Message length` (_body_).
 
-Ahora, dentro del `Message` almacenamos la apuesta a través de un separador que nos permite distinguir cada uno de los campos de la apuesta en sí. El separador utilizado fue `;`. Entonces, para leer eso, simplemente debemos leer según el `Message length` y _splitear_ con el separador en cuestión. El mensaje tiene el siguiente formato: `AgencyID;FirstName;LastName;Document;Birthdate;Number`, los cuales corresponden a cada uno de los diferentes parámetros de la apuesta.
+Para el caso del mensaje de tipo `FAIL`, el valor de `Message` es el error que ocurrió en el servidor, ya sea por mensaje inválido o por algún problema interno. Ahora, para el caso del mensaje de tipo `BET`, dentro de `Message` almacenamos la apuesta utilizando un separador que nos permite distinguir cada uno de los campos de la apuesta. El separador utilizado es `;`. Entonces, para leer eso, simplemente debemos leer según el `Message length` y dividir el contenido usando el separador. El mensaje tiene el siguiente formato: `AgencyID;FirstName;LastName;Document;Birthdate;Number`, los cuales corresponden a cada uno de los diferentes parámetros de la apuesta.
 
 Ahora pasemos a analizar cómo es el estado de cada mensaje, es decir, cómo responde cada entidad ante la llegada de cada mensaje. Existen solamente dos caminos: un caso donde la apuesta llega sin problema, por lo que el servidor contesta con el mensaje `OK` asegurándole al cliente que su apuesta fue guardada exitosamente. No existe una política de reenvío de apuestas, dado que estamos trabajando sobre un _TCP socket_, por lo que el envío de mensajes es seguro. Dejamos un diagrama de secuencia de los mensajes en el caso exitoso.
 

@@ -46,6 +46,11 @@ func htons(value uint16) []byte {
 	return msg
 }
 
+// ntohs converts a 2-byte slice in network byte order (big-endian) to a uint16 in host byte order.
+func ntohs(value []byte) uint16 {
+	return binary.BigEndian.Uint16(value)
+}
+
 // NewProtocol initializes a new Protocol given a socket connection
 func NewProtocol(conn net.Conn) *Protocol {
 	return &Protocol{
@@ -140,8 +145,26 @@ func (p *Protocol) RecvOKMsg() error {
 		return err
 	}
 
+	if ack[0] == FAIL_HEADER {
+		// Read length for fail message
+		lengthBytes := make([]byte, SIZE_LENGTH_BYTES)
+		if err := p.readAll(lengthBytes, SIZE_LENGTH_BYTES); err != nil {
+			return err
+		}
+		length := ntohs(lengthBytes)
+
+		// Read fail message
+		failMsg := make([]byte, length)
+		if err := p.readAll(failMsg, int(length)); err != nil {
+			return err
+		}
+
+		return fmt.Errorf("%s", string(failMsg))
+	}
+
 	if ack[0] != OK_HEADER {
 		return fmt.Errorf("invalid OK message")
 	}
+
 	return nil
 }

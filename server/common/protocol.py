@@ -57,7 +57,7 @@ class Protocol:
         length: int = self.__ntohs(self.__recv_all(Protocol.SIZE_LENGTH_BYTES))
         bet_message: bytes = self.__recv_all(length)
 
-        return self.__deserialize(bet_message)
+        return self.__deserialize_bet(bet_message)
 
     def send_success_msg(self) -> None:
         """
@@ -65,13 +65,15 @@ class Protocol:
         """
         self._socket.sendall(Protocol.OK_HEADER)
 
-    def send_failure_msg(self) -> None:
+    def send_failure_msg(self, err_msg: str) -> None:
         """
         Send a failure message to the client.
         """
         self._socket.sendall(Protocol.FAIL_HEADER)
+        self._socket.sendall(self.__htons(len(err_msg)))
+        self._socket.sendall(err_msg.encode("utf-8"))
 
-    def __deserialize(self, bytes: bytes) -> Bet:
+    def __deserialize_bet(self, bytes: bytes) -> Bet:
         """
         Deserialize a bet message from the socket.
         """
@@ -92,6 +94,17 @@ class Protocol:
         If `bytes` is not at least 2 bytes long, the behavior is undefined.
         """
         return int.from_bytes(bytes[:2], "big", signed=False)
+    
+    def __htons(self, value: int) -> bytes:
+        """
+        Convert an integer to a byte sequence using network byte order.
+
+        This is equivalent to the C function `htons`, which converts a
+        short integer from host byte order to network byte order.
+
+        The returned byte sequence will be exactly 2 bytes long.
+        """
+        return value.to_bytes(2, "big", signed=False)
 
     def __recv_all(self, length: int) -> bytes:
         """

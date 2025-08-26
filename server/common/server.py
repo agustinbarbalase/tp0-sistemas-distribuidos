@@ -61,12 +61,12 @@ class Server:
             protocol.send_success_msg()
         except UnexpectedMessage as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
-            protocol.send_failure_msg()
+            protocol.send_failure_msg("Invalid message sent")
         except ConnectionClose as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
         except Exception as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
-            protocol.send_failure_msg()
+            protocol.send_failure_msg("Internal server error")
         finally:
             client_sock.close()
 
