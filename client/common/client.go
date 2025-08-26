@@ -28,6 +28,8 @@ type Client struct {
 	isClosed  bool
 }
 
+const dateFormat = "2006-01-02"
+
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
 func NewClient(config ClientConfig) *Client {
@@ -100,7 +102,7 @@ func (c *Client) createBet() (*Bet, error) {
 	}
 
 	birthdate := os.Getenv("CLI_NACIMIENTO")
-	if _, err := time.Parse(time.DateOnly, birthdate); err != nil {
+	if _, err := time.Parse(dateFormat, birthdate); err != nil {
 		log.Error("action: nacimiento_invalido | nacimiento: %v | error: %v", birthdate, err)
 		return nil, err
 	}
