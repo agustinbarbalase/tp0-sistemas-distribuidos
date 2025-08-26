@@ -1,5 +1,11 @@
 import sys
 
+NOMBRE="Santiago Lionel"
+APELLIDO="Lorca"
+DOCUMENTO="30904465"
+NACIMIENTO="1999-03-17"
+NUMERO="7574"
+
 def define_server(file):
   file.write(
     "  server:\n"
@@ -23,11 +29,11 @@ def define_client(file, number_of_client):
     "    entrypoint: /client\n"
     "    environment:\n"
     f"      - CLI_ID={number_of_client}\n"
-    "      - NOMBRE=Santiago Lionel\n"
-    "      - APELLIDO=Lorca\n"
-    "      - DOCUMENTO=30904465\n"
-    "      - NACIMIENTO=1999-03-17\n"
-    "      - NUMERO=7574\n"
+    f"      - CLI_NOMBRE={NOMBRE}\n"
+    f"      - CLI_APELLIDO={APELLIDO}\n"
+    f"      - CLI_DOCUMENTO={DOCUMENTO}\n"
+    f"      - CLI_NACIMIENTO={NACIMIENTO}\n"
+    f"      - CLI_NUMERO={NUMERO}\n"
     "    volumes:\n"
     "      - ./client/config.yaml:/config.yaml:ro\n"
     "    networks:\n"

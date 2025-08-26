@@ -87,27 +87,27 @@ func (c *Client) handleSignal() {
 // If NUMERO or DOCUMENTO cannot be parsed as integers, it logs an error and returns nil with the parsing error.
 // Returns a pointer to the created Bet and an error if any occurred during parsing.
 func (c *Client) createBet() (*Bet, error) {
-	number, err := strconv.Atoi(os.Getenv("NUMERO"))
+	number, err := strconv.Atoi(os.Getenv("CLI_NUMERO"))
 	if err != nil {
-		log.Error("action: numero_invalido | numero: %v | error: %v", os.Getenv("NUMERO"), err)
+		log.Error("action: numero_invalido | numero: %v | error: %v", os.Getenv("CLI_NUMERO"), err)
 		return nil, err
 	}
 
-	document, err := strconv.Atoi(os.Getenv("DOCUMENTO"))
+	document, err := strconv.Atoi(os.Getenv("CLI_DOCUMENTO"))
 	if err != nil {
-		log.Error("action: documento_invalido | documento: %v | error: %v", os.Getenv("DOCUMENTO"), err)
+		log.Error("action: documento_invalido | documento: %v | error: %v", os.Getenv("CLI_DOCUMENTO"), err)
 		return nil, err
 	}
 
-	birthdate := os.Getenv("NACIMIENTO")
+	birthdate := os.Getenv("CLI_NACIMIENTO")
 	if _, err := time.Parse(time.DateOnly, birthdate); err != nil {
 		log.Error("action: nacimiento_invalido | nacimiento: %v | error: %v", birthdate, err)
 		return nil, err
 	}
 
 	return &Bet{
-		FirstName: os.Getenv("NOMBRE"),
-		LastName:  os.Getenv("APELLIDO"),
+		FirstName: os.Getenv("CLI_NOMBRE"),
+		LastName:  os.Getenv("CLI_APELLIDO"),
 		Document:  document,
 		Birthdate: birthdate,
 		Number:    number,
