@@ -238,7 +238,7 @@ Ahora pasemos a analizar cómo es el estado de cada mensaje, es decir, cómo res
 
 <p align="center"><strong>Diagrama de secuencia: Caso 1 donde el mensaje de la apuesta llega correctamente</strong></p>
 
-Por otro lado, existe la posibilidad de que la apuesta no haya sido almacenada correctamente, dado que hubo algún problema del lado del servidor ya sea con la lectura del mensaje o porque no haya podido almacenar en un archivo correctamente la apuesta. En ese caso, el servidor responde con un mensaje `FAIL` al cliente para que sepa que su apuesta no ha sido almacenada y lo reintente u haga otra cosa. El diagrama de secuencias, para este caso, sería de la siguiente manera.
+Por otro lado, existe la posibilidad de que la apuesta no haya sido almacenada correctamente, ya sea por algún problema del lado del servidor, como errores en la lectura del mensaje o fallos al guardar la apuesta en un archivo. En ese caso, el servidor responde con un mensaje `FAIL` al cliente para que sepa que su apuesta no ha sido almacenada. Si ocurre un error, el cliente no reintentará enviar la apuesta; se deberá corregir lo que esté mal en los parámetros de la apuesta. El diagrama de secuencia para este caso sería el siguiente.
 
 ```txt
   +-----------+                      +------------+ 
@@ -373,7 +373,7 @@ Las variables de entorno nuevas son:
 - CLI_NACIMIENTO
 - CLI_NUMERO
 
-Estas se encuentran dentro del `generador_compose.py`, como ya mencionamos antes. Por lo que, para usar otros valores, modificamos los valores de las nuevas constantes definidas en el script en cuestión y volvemos a generar el archivo de _compose_.
+Es importante resaltar que el documento y el número sean efectivamente valores numéricos, y que la fecha de nacimiento tenga el formato `YYYY-MM-DD`; de lo contrario, el cliente arrojará un error y no se cerrará correctamente. Estos valores se encuentran dentro del `generador_compose.py`, como ya mencionamos antes. Por lo tanto, para utilizar otros valores, se deben modificar las nuevas constantes definidas en el script correspondiente y volver a generar el archivo de _compose_.
 
 #### Referencias
 
