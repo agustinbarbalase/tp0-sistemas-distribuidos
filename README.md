@@ -17,6 +17,7 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
     - [Ejercicio N°4](#ejercicio-n4)
       - [Servidor](#servidor)
       - [Cliente](#cliente)
+      - [Ejecucion](#ejecucion)
       - [Referencias](#referencias-2)
     - [Ejercicio N°5](#ejercicio-n5)
       - [Protocolo](#protocolo)
@@ -126,195 +127,45 @@ Como es un echo server, lo que se va a imprimir por pantalla es lo mismo que env
 4. nc(1) - Linux man page. (n.d.). Retrieved August 22, 2025, from [https://linux.die.net/man/1/nc](https://linux.die.net/man/1/nc)
 
 ### Ejercicio N°4
-
-En este ejercicio implementamos toda la lógica para un _graceful shutdown_ cuando ambos reciben un *SIGTERM*. Vamos a explicar cómo funciona del lado del servidor primero y luego pasaremos a explicar el cliente.
+En este ejercicio implementamos toda la lógica para un _graceful shutdown_ cuando ambos reciben un _SIGTERM_. Vamos a explicar cómo funciona del lado del servidor primero y luego pasaremos a explicar el cliente. Finalmente explicaremos su ejecución para probar el _graceful shutdown_.
 
 #### Servidor
 
-Primero, vamos a hacer una visión simplificada del flujo del servidor. Para eso, insertemos un pequeño diagrama de estados de cómo funciona exactamente el servidor.
-
-```txt
-  ------------->-------------
-  |                         |
-  |                         V
-  |               +-------------------+ 
-  |               |                   | ---
-  |       IN  ->  | accept_connection |   |  (Waiting connection)
-  |               |                   | <--
-  |               +-------------------+ 
-  |                         |
-  ^                         |  (Entry connection)
-  |                         |
-  |                         V
-  |               +-------------------+
-  |               |                   |
-  |               | handle_connection |
-  |               |                   |
-  |               +-------------------+
-  |                         |
-  ------------<--------------
-    (Finish connection)
-```
-
-Aquí dejamos una versión simplificada de cómo funciona el loop del server. Vemos que espera conexiones y, una vez que obtiene una, pasa a manejar esa conexión. Pensemos un momento qué pasa si entra la _signal_ en cada uno de esos puntos. Puede pasar. Vamos a dividir los casos en dos: mientras espera por una conexión o mientras atiende a una conexión.
-
-Si el servidor recibe una interrupción mientras espera una conexión, simplemente cerramos ese socket y no aceptamos ninguna conexión entrante nueva, y marcamos el servidor como cerrado para que, a la hora de manejar la conexión, no haga nada. En una especie de pseudocódigo se vería de la siguiente forma.
-
-```python
-conn # Conexión con el cliente
-is_closed # Variable para detectar si el socket de aceptación está cerrado
-#-------------------------------------------------------------------------
-
-def server_loop():
-  while not is_closed:
-    conn = accept_connection()
-    if is_closed: break
-    handle_connection(conn)
-
-def shutdown():
-  is_closed = True
-  socket.shutdown(RW)
-  socket.close()
-```
-
-Ahora, ¿qué pasa si se cierra el socket mientras el servidor atiende a un cliente? Ahí tenemos dos formas de atacar el problema. Obviamente, debemos dejar de aceptar nuevas conexiones entrantes, por lo que hasta ahora nuestro shutdown permanece igual, pero podemos optar por cerrar o no el socket que maneja la conexión con el cliente.
-
-Ahí aparece una cuestión de políticas: si queremos terminar de atender al cliente o directamente le cerramos el socket para no seguir atendiendo su solicitud. Dada la simplicidad del ejercicio, optamos por terminar de atender a los clientes y luego terminar el cierre. Eso hace que el manejo sea igual al código anterior. Ahora, para manejar el cierre un poco más agresivo, mostramos un posible pseudocódigo.
-
-```python
-conn # Conexión con el cliente
-is_closed # Variable para detectar si el socket de aceptación está cerrado
-#-------------------------------------------------------------------------
-
-def server_loop():
-  while not is_closed:
-    conn = accept_connection()
-    if is_closed: break
-    handle_connection()
-
-def handle_connection():
-  try:
-    msg = conn.read()
-    if is_closed: return
-    conn.write(msg)
-  except Exception as err:
-    if is_closed: return
-    raise err
-  finally:
-    if conn:
-      conn.close()
-      conn = None
-
-def shutdown():
-  is_closed = True
-  if conn:
-    conn.close()
-    conn = None
-  socket.shutdown(RW)
-  socket.close()
-```
-
-Finalizada la explicación simplificada del manejo de la _signal_, pasemos a explicar algunas cuestiones referidas a la implementación en Python. La primera cuestión a tener en cuenta es que, cuando nosotros cerramos una conexión en el socket de aceptación, este lanza un error del tipo *OSError*. Esto nos lleva a manejar esa excepción. A continuación mostramos cómo es el código para ese manejo. ¹
-
-```python
-conn # Conexión con el cliente
-addr # Dirección del cliente (ip, port)
-sock # Socket de aceptación del server
-is_closed # Variable para detectar si el socket de aceptación está cerrado
-#-------------------------------------------------------------------------
-
-def accept_connection():
-  try:
-    conn, addr = sock.accept()
-    return conn
-  except OSError as err:
-    if not is_closed: raise err
-    return None
-```
+Cuando recibe un _SIGTERM_, lo primero que hace es cerrar el socket de escucha. Esto significa que no aceptará nuevas conexiones entrantes. Si el servidor estaba bloqueado esperando en una llamada a `accept()`, esta se interrumpe y genera un error de tipo _OSError_. ¹ En el caso de que el servidor esté atendiendo a un cliente en ese momento, no corta la comunicación de manera inmediata. En lugar de eso, completa la interacción con el cliente y recién después continúa con el proceso de apagado. De esta forma, el cierre es más ordenado y no interrumpe bruscamente las conexiones que ya estaban activas.
 
 Si el servidor ya fue cerrado, simplemente salimos del `accept_connection()` y listo. Por otro lado, un breve comentario de qué son los parámetros para manejar las _signals_: uno de ellos es `signum`, este indica qué número de señal fue enviado. El otro parámetro es el `frame`, que corresponde al punto donde se estaba ejecutando el programa cuando se recibió la _signal_. ²
 
 #### Cliente
 
-Analicemos ahora el flujo del cliente con otro diagrama de estados simplificado, y veamos qué casos podemos tener.
+Cuando el cliente recibe un _SIGTERM_, inicia un cierre ordenado de sus operaciones. Si estaba intentando conectarse al servidor, interrumpe el intento y finaliza sin volver a reintentar. En el caso de estar enviando o recibiendo mensajes, las operaciones se desbloquean y devuelven un error que indica que la conexión fue cerrada. Ante este evento, si se trata de un envío de la señal _SIGTERM_ y no de un verdadero error, el cliente simplemente corta el ciclo de ejecución y se apaga. ³
 
-```txt
-  ------------->-------------
-  |                         |
-  |                         V
-  |               +-------------------+ 
-  |               |                   |
-  |       IN  ->  |  init_connection  |
-  |               |                   |
-  |               +-------------------+ 
-  |                         |
-  ^                         |  (Accepted connection)
-  |                         |
-  |                         V
-  |               +-------------------+
-  |               |                   |
-  |               |   send_message    |
-  |               |                   |
-  |               +-------------------+
-  |                         |
-  ^                         |  (Sent message)
-  |                         |
-  |                         V    
-  |               +-------------------+ 
-  |               |                   | ---
-  |               |   recv_message    |   |  (Waiting for message)
-  |               |                   | <--
-  |               +-------------------+
-  |                         |
-  ^                         |  (Received message)
-  |                         |
-  |                         V
-  |               +-------------------+
-  |               |                   |
-  |               | close_connection  |  ->  OUT
-  |               |                   |
-  |               +-------------------+ 
-  |                         |
-  ------------<--------------
-    (Send another message)
+Finalmente, expliquemos cómo funcionan las _signals_ en Go. La forma de usar las _signals_ es creando una _go routine_, que sería como un hilo de ejecución, y esta espera para _poppear_ un elemento de una _queue_ bloqueante. Cuando la _signal_ se "dispara", se desbloquea el hilo y hace el _graceful shutdown_. ⁴
+
+#### Ejecucion
+
+Para probar que efectivamente funciona el _graceful shutdown_, debemos primero correr el siguiente comando:
+
+```bash
+make docker-compose-up
 ```
 
-En el caso de que estemos esperando una conexión, simplemente deberemos chequear si fue mandada la _signal_ a través de la variable `is_closed`; en ese caso, simplemente salimos del loop y listo. Para el caso de mandar un mensaje, si el socket fue cerrado se levantará un error de que el mismo fue cerrado; en este caso, simplemente chequeamos con la variable `is_closed` si fue cerrado, para ver si no es un falso positivo y, si no es así, salimos del loop.
+Luego debemos correr el comando para hacerle un _stop_ y un _down_ a los container, para eso corremos el siguiente comando:
 
-Para cuando queramos leer un mensaje, este se desbloqueará y mandará el mismo error que antes; nuevamente chequeamos con la variable `is_closed` si fue cerrado, para ver si no es un falso positivo y, si no es así, salimos del loop. En el loop debemos agregar a las condiciones una de si el socket fue cerrado o no con la variable `is_closed` para que no intente establecer una conexión con el servidor. Dejamos un ejemplo con pseudocódigo de cómo sería. ³
-
-```go
-currMsgNumber // Número del mensaje actual
-totalMsgNumber // Total de mensajes a ser mandados
-isClosed // Variable para detectar si el socket de aceptación está cerrado
-err // Variable para guardar el valor de un error
-conn // Conexión con el servidor
-msg // Mensaje a mandar
-//------------------------------------------------------------------------
-
-func ClientLoop() {
-  for currMsgNumber := 1; currMsgNumber <= totalMsgNumber && !isClosed; currMsgNumber++ {
-    if err := createConnection(); err != nil || isClosed {
-      return
-    }
-
-    if _, err := conn.sendMessage(msg); err != nil {
-      if isClosed { return }
-      conn.Close()
-      return
-    }
-
-    resp, err := conn.recvMessage()
-    conn.Close() 
-    if err != nil {
-      if isClosed { return }
-      return
-    }
-  }
-}
+```bash
+make docker-compose-down
 ```
 
-Finalmente, expliquemos cómo funcionan las _signals_ en GoLang. La forma de usar las _signals_ es creando una _go routine_, que sería como un hilo de ejecución, y esta espera para _poppear_ un elemento de una _queue_ bloqueante. Cuando la _signal_ se "dispara", se desbloquea el hilo y hace el _graceful shutdown_. ⁴
+Es importante recalcar, que este ultimo comando dara de baja tanto al cliente como al servidor. Si quisieramos dar de baja algun servicio en particular, debemos correr el siguiente comando:
+
+```bash
+docker compose -f docker-compose-dev.yaml stop -t <tiempo> <nombre_del_servicio>
+```
+
+Para chequear la salida de codigos de error y los diferentes logs que fue enviando tanto el cliente como el servidor, corremos el siguiente comando:
+
+``` bash
+make docker-compose-logs
+```
 
 #### Referencias
 
