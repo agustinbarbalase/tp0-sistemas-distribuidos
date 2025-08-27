@@ -65,6 +65,10 @@ def main():
     filename = sys.argv[1]
     number_of_clients = int(sys.argv[2])
 
+    if not filename.endswith('.yaml'):
+      print("filename must end with .yaml")
+      sys.exit(1)
+
     if number_of_clients < 0:
       print("number_of_clients must be not negative")
       sys.exit(1)
