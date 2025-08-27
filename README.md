@@ -78,13 +78,21 @@ En el caso del cliente, este usa una librería llamada [viper](https://github.co
 
 ### Ejercicio N°3
 
-Para este ejercicio creamos el archivo `validar-echo-server.sh`, el cual se ejecuta de la siguiente manera:
+Para este ejercicio creamos el archivo `validar-echo-server.sh`. Es importante asegurarse de que el servidor esté funcionando; para ello, primero debemos levantarlo previamente con _docker compose_. Para hacerlo, ejecutamos el siguiente comando:
 
-`./validar-echo-server.sh`
+```bash
+make docker-compose-up
+```
 
-El mismo corre una imagen de `busybox`, la cual provee implementaciones simplificadas de varias utilidades comunes de Linux/UNIX, como por ejemplo: `nc` (netcat), `echo` y `sh`. Estos nos permiten chequear la conectividad con el servidor. ¹
+Luego, para validar que el servidor responde correctamente, debemos utilizar el script creado, el cual se ejecuta de la siguiente manera:
 
-Hay que tener en cuenta que el servidor vive dentro de una `network` que se crea con el Docker Compose, por lo cual, cuando corramos el contenedor con `docker run`, debemos proveer esta `network` generada por el Docker Compose. Por suerte, existe el flag `--network=<nombre_de_network>` para el comando `docker run`, con lo cual, cuando corramos el comando netcat en el contenedor, sabrá cuál es la dirección del `server` y su puerto, sin exponer los puertos hacie el host. ²
+```bash
+./validar-echo-server.sh
+```
+
+El mismo corre una imagen de `busybox`, la cual provee implementaciones simplificadas de varias utilidades comunes de Linux/UNIX, como por ejemplo: `nc` (netcat), `echo` y `sh`. Estas nos permiten chequear la conectividad con el servidor. ¹ Es importante resaltar que este script asume que el contenedor se llama `server` y corre en el puerto `12345`. Si queremos utilizar el validador en otro servidor, debemos cambiar esas variables.
+
+Hay que tener en cuenta que el servidor vive dentro de una `network` que se crea con el _docker compose_, por lo cual, cuando corramos el contenedor con `docker run`, debemos proveer esta `network` generada por el _docker compose_. Por suerte, existe el flag `--network=<nombre_de_network>` para el comando `docker run`, con lo cual, cuando ejecutemos el comando netcat en el contenedor, sabrá cuál es la dirección del `server` y su puerto, sin exponer los puertos hacia el host. ²
 
 El comando que ejecuta el script `validar-echo-server.sh` es el siguiente:
 
