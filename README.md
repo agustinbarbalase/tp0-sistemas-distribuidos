@@ -46,15 +46,17 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
 
 ### Ejercicio N°1
 
-Tal como indica el ejercicio, el comando para ejecutar el script es:
+Para este ejercicio, se implementó el script `generar-compose.sh` que permite escribir un _docker compose_ para generar diferentes servicios, los cuales incluyen: un servidor, una network y un número variable de clientes. Estos últimos se especifican a través de un parámetro en el script; para su ejecución dejamos el comando a continuación.
 
-`./generar-compose.sh <nombre_del_archivo> <numero_de_clientes>`
+```bash
+./generar-compose.sh <nombre_del_archivo> <numero_de_clientes>
+```
 
-El nombre del archivo debe incluir su extensión y el número de clientes debe ser, obviamente, un número entero no negativo. Por otro lado, existe manejo de errores para el caso en que se pase una cantidad distinta a la requerida de parámetros.
+El nombre del archivo debe incluir su extensión (`.yaml`) y el número de clientes debe ser, obviamente, un número entero no negativo. Por otro lado, existe manejo de errores para el caso en que se pase una cantidad distinta a la requerida de parámetros o que los parámetros sean inválidos (ej: el número de clientes no es un número). Para usar ese _docker compose_ generado, debemos correr el siguiente comando:
 
-Respecto a la implementación del código, contamos con una función `create_docker_compose` que recibe el nombre del archivo (`filename`) y el número de clientes (`number_of_clients`). La misma escribe sobre el archivo las definiciones necesarias, luego se llama a una serie de funciones para definir los distintos servicios que tiene nuestro compose.
-
-La primera es `define_server`, la cual define el servicio del servidor. La segunda es `define_client`, que define el cliente; notemos que recibe como uno de sus parámetros el número de cliente que corresponde definir. Por último, `define_network` define la red de nuestro compose. Es importante notar que todas las funciones reciben el archivo donde se escribe el compose.
+```bash
+docker compose -f <nombre_del_archivo> up -d --build
+```
 
 ### Ejercicio N°2
 
