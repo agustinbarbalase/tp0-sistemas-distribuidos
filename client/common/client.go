@@ -39,7 +39,6 @@ func NewClient(config ClientConfig) *Client {
 		isClosed: false,
 	}
 	signal.Notify(client.signalChannel, syscall.SIGTERM)
-	signal.Notify(client.signalChannel, syscall.SIGINT)
 	go client.handleSignal()
 	return client
 }
