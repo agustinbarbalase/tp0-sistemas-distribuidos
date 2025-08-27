@@ -127,7 +127,9 @@ En este ejercicio implementamos toda la lógica para un _graceful shutdown_ cuan
 
 #### Servidor
 
-Cuando recibe un _SIGTERM_, lo primero que hace es cerrar el socket de escucha. Esto significa que no aceptará nuevas conexiones entrantes. Si el servidor estaba bloqueado esperando en una llamada a `accept()`, esta se interrumpe y genera un error de tipo _OSError_. ¹ En el caso de que el servidor esté atendiendo a un cliente en ese momento, no corta la comunicación de manera inmediata. En lugar de eso, completa la interacción con el cliente y recién después continúa con el proceso de apagado. De esta forma, el cierre es más ordenado y no interrumpe bruscamente las conexiones que ya estaban activas.
+Cuando recibe un _SIGTERM_, lo primero que hace es cerrar el socket de escucha. Esto significa que no aceptará nuevas conexiones entrantes. Si el servidor estaba bloqueado esperando en una llamada a `accept()`, esta se interrumpe y genera un error de tipo _OSError_. ¹ 
+
+En el caso de que el servidor esté atendiendo a un cliente en ese momento, no corta la comunicación de manera inmediata. En lugar de eso, completa la interacción con el cliente y recién después continúa con el proceso de apagado. De esta forma, el cierre es más ordenado y no interrumpe bruscamente las conexiones que ya estaban activas.
 
 Si el servidor ya fue cerrado, simplemente salimos del `accept_connection()` y listo. Por otro lado, un breve comentario de qué son los parámetros para manejar las _signals_: uno de ellos es `signum`, este indica qué número de señal fue enviado. El otro parámetro es el `frame`, que corresponde al punto donde se estaba ejecutando el programa cuando se recibió la _signal_. ²
 
