@@ -22,6 +22,10 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
     - [Ejercicio N°5](#ejercicio-n5)
       - [Protocolo](#protocolo)
       - [Cuestiones para desarrollar un protocolo](#cuestiones-para-desarrollar-un-protocolo)
+        - [short-read y short-write](#short-read-y-short-write)
+        - [Endianness](#endianness)
+      - [Separación de responsabilidades](#separación-de-responsabilidades)
+      - [Ejecución](#ejecución)
       - [Referencias](#referencias-3)
   - [Instrucciones de uso](#instrucciones-de-uso)
     - [Servidor](#servidor-1)
@@ -178,11 +182,11 @@ make docker-compose-logs
 
 ### Ejercicio N°5
 
-En esta parte hablaremos sobre el desarrollo del protocolo, cuestiones generales relacionadas a la hora de desarrollar un protocolo, como así también cuestiones de implementación del lado del cliente como del servidor. Empezaremos primero hablando sobre cómo está desarrollado el protocolo, qué mensajes tiene y qué mensajes espera cada una de las partes para reaccionar de acuerdo a ello.
+En esta parte hablaremos sobre el desarrollo del protocolo, cuestiones generales relacionadas a la hora de desarrollar un protocolo, como así también cuestiones de implementación del lado del cliente y del servidor. Empezaremos primero hablando sobre cómo está desarrollado el protocolo, qué mensajes tiene y qué mensajes espera cada una de las partes para reaccionar de acuerdo a ello.
 
 #### Protocolo
 
-El protocolo desarrollado bajo este ejercicio consiste en 3 simples mensajes: el primero es la apuesta (`BET`) en sí, el segundo corresponde a un mensaje `OK` y, por último, un mensaje de `FAIL`. Los mensajes tienen dos partes: una cabecera (header) y un cuerpo (body). El _header_ tiene un _code message_ de 1 byte y permite diferenciar qué mensaje estamos enviando, y un _message length_ de 2 bytes que determina de qué tamaño es el mensaje. A continuación, dejamos un cuadro con cada uno de los 3 posibles _code message_.
+El protocolo desarrollado para este ejercicio consiste en 3 simples mensajes: el primero es la apuesta (`BET`) en sí, el segundo corresponde a un mensaje `OK` y, por último, un mensaje de `FAIL`. Los mensajes tienen dos partes: una cabecera (header) y un cuerpo (body). El _header_ tiene un _code message_ de 1 byte y permite diferenciar qué mensaje estamos enviando, y un _message length_ de 2 bytes que determina de qué tamaño es el mensaje. A continuación, dejamos un cuadro con cada uno de los 3 posibles _code message_.
 
 | Tipo de mensaje | Valor del _code message_ |
 |-----------------|--------------------------|
@@ -193,18 +197,20 @@ El protocolo desarrollado bajo este ejercicio consiste en 3 simples mensajes: el
 Ahora, el _body_ es el resto del mensaje. Dependiendo del _header_ que lea el protocolo, este sabrá cómo está compuesto el resto del _body_. El mensaje de tipo `OK` no tiene un _body_ asociado, ni tampoco tiene un _message length_; solamente consiste en su _code message_. Distinto es el caso para los mensajes `BET` y `FAIL`, que sí tienen un _body_ asociado y un _message length_. Veamos cómo está compuesto el mensaje completo, a través de un diagrama de cada campo:
 
 ```txt
-  +----------------------------------+
-  |       Code message (1 byte)      |    
-  +----------------------------------+
-  |                                  |
-  |     Message length (2 bytes)     |
-  |                                  |
-  +----------------------------------+
-  |                                  |
-  |    Message (variable length)     |
-  |                                  |   
-  +----------------------------------+
+  +----------------------------------+  
+  |       Code message (1 byte)      |  
+  +----------------------------------+  
+  |                                  |  
+  |     Message length (2 bytes)     |  
+  |                                  |  
+  +----------------------------------+  
+  |                                  |  
+  |    Message (variable length)     |  
+  |                                  |  
+  +----------------------------------+  
 ```
+
+<p align="center"><strong>Formato de mensaje del protocolo</strong></p>
 
 Con este diagrama, expliquemos el mensaje `BET` con cada uno de los campos:
 
@@ -217,36 +223,42 @@ Para el caso del mensaje de tipo `FAIL`, el valor de `Message` es el error que o
 Ahora pasemos a analizar cómo es el estado de cada mensaje, es decir, cómo responde cada entidad ante la llegada de cada mensaje. Existen solamente dos caminos: un caso donde la apuesta llega sin problema, por lo que el servidor contesta con el mensaje `OK` asegurándole al cliente que su apuesta fue guardada exitosamente. No existe una política de reenvío de apuestas, dado que estamos trabajando sobre un _TCP socket_, por lo que el envío de mensajes es seguro. Dejamos un diagrama de secuencia de los mensajes en el caso exitoso.
 
 ```txt
-  +-----------+                      +------------+
-  |  Cliente  |                      |  Servidor  |
-  +-----------+                      +------------+
-        V                                  V
-        |            (BET msg)             |
-        | --------------->---------------- |
-        V                                  V
-        |            (OK msg)              |
-        | ---------------<---------------- |
-        V                                  V
-        |                                  |
+  +-----------+                      +------------+ 
+  |  Cliente  |                      |  Servidor  | 
+  +-----------+                      +------------+ 
+        V                                  V  
+        |            (BET msg)             |  
+        | --------------->---------------- |  
+        V                                  V  
+        |            (OK msg)              |  
+        | ---------------<---------------- |  
+        V                                  V  
+        |                                  |  
 ```
+
+<p align="center"><strong>Diagrama de secuencia: Caso 1 donde el mensaje de la apuesta llega correctamente</strong></p>
 
 Por otro lado, existe la posibilidad de que la apuesta no haya sido almacenada correctamente, dado que hubo algún problema del lado del servidor ya sea con la lectura del mensaje o porque no haya podido almacenar en un archivo correctamente la apuesta. En ese caso, el servidor responde con un mensaje `FAIL` al cliente para que sepa que su apuesta no ha sido almacenada y lo reintente u haga otra cosa. El diagrama de secuencias, para este caso, sería de la siguiente manera.
 
 ```txt
-  +-----------+                      +------------+
-  |  Cliente  |                      |  Servidor  |
-  +-----------+                      +------------+
-        V                                  V
-        |            (BET msg)             |
-        | --------------->---------------- |
-        V                                  V
-        |           (FAIL msg)             |
-        | ---------------<---------------- |
-        V                                  V
-        |                                  |
+  +-----------+                      +------------+ 
+  |  Cliente  |                      |  Servidor  | 
+  +-----------+                      +------------+ 
+        V                                  V  
+        |            (BET msg)             |  
+        | --------------->---------------- |  
+        V                                  V  
+        |           (FAIL msg)             |  
+        | ---------------<---------------- |  
+        V                                  V  
+        |                                  |  
 ```
 
+<p align="center"><strong>Diagrama de secuencia: Caso 2 donde el mensaje de la apuesta llega incorrectamente</strong></p>
+
 #### Cuestiones para desarrollar un protocolo
+
+##### short-read y short-write
 
 Para desarrollar este protocolo hubo que tener en cuenta dos cuestiones muy importantes, la primera es la cuestión relacionada con el _short read y short write_ ¹ y la segunda con el envío de bytes a través de una red (_host-to-network_) y la recepción de esos (_network-to-host_). Empecemos con la primera cuestión. Básicamente cuando mandamos mensajes a través de un _socket_, existe la posibilidad de que este no envíe todos los bytes que le pedimos, es decir la librería en cuestión no nos asegura mandar el mensaje completo, esto puede llevar a que el servidor o el cliente se queden bloqueados esperando bytes que nunca fueron enviados. Existe una solución para eso, escribamos un pseudocódigo y veamos cómo funciona
 
@@ -279,37 +291,89 @@ def send_all(msg, length):
    writed += size
 ```
 
+<p align="center"><strong>Pseudocódigo: <i>short-read</i> y <i>short-write</i></strong></p>
+
 Las librerías de _sockets_ devuelven cuántos bytes se leyeron/escribieron, entonces a partir de eso podremos saber cuántos bytes faltan por enviar/recibir, por eso estamos en un loop que nos asegura que hayamos leído todo el mensaje que esperamos recibir/enviar. En el caso de Python, nos devuelven lo que recibieron, sino que devuelven el mensaje en sí, sabiendo el tamaño del mensaje parcial recibido (_chunk_) podremos saber cuánto leímos. ² Particularmente en Python, existe una función implementada por el _socket_ llamada `sendall()` que nos asegura enviar todos los bytes, por lo que el problema del _short write_ en Python está resuelto. ³
 
-Respecto al problema del envío o recepción de mensajes a través de la red, tiene que ver con cómo implementan los números las computadoras. Algunas usan el formato _big endian_, es decir el byte más significativo primero, o la opción de _little endian_, o sea el byte menos significativo primero. Esa diferencia nos trae la obligación de asegurarnos el correcto envío y recepción de los bytes a través de la red. Es por eso que existe la necesidad de implementar una función que transforme del _endianess_ de la computadora (_host_) a una a través de la red (_network_), estas funciones se llaman _host-to-network_ (`hton`), lo mismo aplica al revés, es decir _network-to-host_ (`ntoh`).
+##### Endianness
 
-Para el caso de este protocolo, lo necesitamos para bytes relacionados con los tamaños del `nombre` y el `apellido`, la convención es utilizar _big endian_ para la _network_. ⁴ Así que las funciones _hton_ y _ntoh_ deberán utilizar una transformación a _big endian_ o decir que determinado conjunto de bytes es _big endian_. Como los tamaños son de 2 bytes, a estas funciones particularmente se las llama `htons()` y `ntohs()`, la `s` es por `short` y son números de 16 bits (2 bytes) sin signo. Para Python ya existe una forma nativa de transformar las cosas en bytes según el _endianess_, ⁵ para el caso de Go usamos una librería de la biblioteca estándar llamada `encoding/binary`. ⁶
+Respecto al problema del envío o recepción de mensajes a través de la red, tiene que ver con cómo implementan los números las computadoras. Algunas usan el formato _big endian_, es decir el byte más significativo primero, o la opción de _little endian_, o sea el byte menos significativo primero. Esa diferencia nos trae la obligación de asegurarnos el correcto envío y recepción de los bytes a través de la red. Es por eso que existe la necesidad de implementar una función que transforme del _endianness_ de la computadora (_host_) a una a través de la red (_network_), estas funciones se llaman _host-to-network_ (`hton`), lo mismo aplica al revés, es decir _network-to-host_ (`ntoh`).
 
-Por último, hablemos brevemente de cómo están separadas las responsabilidades en cada parte. Básicamente en ambas existe una implementación de una clase o estructura llamada `Protocol`, que lo que hace es darnos la funcionalidad necesaria para enviar una apuesta o un mensaje avisando si todo fue exitoso o no. Digamos que el cliente o el servidor, respectivamente, se comunican con esta capa y esta última se encarga de serializar y enviar los mensajes o de recibirlos y deserializarlos para separar correctamente las responsabilidades entre la lógica de negocio y la comunicación. En ambos casos, necesitan que les proveamos un _socket_ por donde se envían o reciben los mensajes y ellos se encargan del resto. Dejamos un diagrama simplificado de cómo funciona
+Para el caso de este protocolo, lo necesitamos para bytes relacionados con los tamaños del `nombre` y el `apellido`, la convención es utilizar _big endian_ para la _network_. ⁴ Así que las funciones _hton_ y _ntoh_ deberán utilizar una transformación a _big endian_ o decir que determinado conjunto de bytes es _big endian_. Como los tamaños son de 2 bytes, a estas funciones particularmente se las llama `htons()` y `ntohs()`, la `s` es por `short` y son números de 16 bits (2 bytes) sin signo. Para Python ya existe una forma nativa de transformar las cosas en bytes según el _endianness_, ⁵ para el caso de Go usamos una librería de la biblioteca estándar llamada `encoding/binary`. ⁶
+
+#### Separación de responsabilidades
+
+En esta seccion, hablamos de cómo están separadas las responsabilidades en cada parte. Básicamente en ambas existe una implementación de una clase o estructura llamada `Protocol`, que lo que hace es darnos la funcionalidad necesaria para enviar una apuesta o un mensaje avisando si todo fue exitoso o no. Digamos que el cliente o el servidor, respectivamente, se comunican con esta capa y esta última se encarga de serializar y enviar los mensajes o de recibirlos y deserializarlos para separar correctamente las responsabilidades entre la lógica de negocio y la comunicación. En ambos casos, necesitan que les proveamos un _socket_ por donde se envían o reciben los mensajes y ellos se encargan del resto. Dejamos un diagrama simplificado de cómo funciona
 
 ```txt
-          Logical layer                                           Logical layer  
-        +----------------+                                     +----------------+
-        | +------------+ |                                     | +------------+ |
-        | |            | |                                     | |            | |
-        | |   Client   | |                                     | |   Server   | |
-        | |            | |                                     | |            | |
-        | +------------+ |                                     | +------------+ |
-        +-----|-----^----+                                     +----|-----^-----+
-              |     |                                               |     |
-  (send bet)  |     |  (recv ok/failure)         (send ok/failure)  |     |  (recv bet)
-              |     |                                               |     |
-        +-----|-----|-----------------------------------------------|-----|-----+
-        |     v     |                                               v     |     |
-        | +------------+         (send msg to server)            +------------+ |
-        | |            |---------------------------------------->|            | |
-        | |  Protocol  |                                         |  Protocol  | |
-        | |            |<----------------------------------------|            | |
-        | +------------+         (send msg to client)            +------------+ |
-        |                                                                       |
-        +-----------------------------------------------------------------------+
-                                  Comunication layer
+            Logical layer                                           Logical layer  
+          +----------------+                                     +----------------+
+          | +------------+ |                                     | +------------+ |
+          | |            | |                                     | |            | |
+          | |   Client   | |                                     | |   Server   | |
+          | |            | |                                     | |            | |
+          | +------------+ |                                     | +------------+ |
+          +-----|-----^----+                                     +----|-----^-----+
+                |     |                                               |     |
+  (send bet) 1  |     |  (recv ok/failure) 6     (send ok/failure) 4  |     |  (recv bet) 3
+                |     |                                               |     |
+          +-----|-----|-----------------------------------------------|-----|-----+
+          |     v     |                                               v     |     |
+          | +------------+         (send msg to server) 2          +------------+ |
+          | |            |---------------------------------------->|            | |
+          | |  Protocol  |                                         |  Protocol  | |
+          | |            |<----------------------------------------|            | |
+          | +------------+         (send msg to client) 5          +------------+ |
+          |                                                                       |
+          +-----------------------------------------------------------------------+
+                                    Communication layer
 ```
+
+<p align="center"><strong>Diagrama de componentes de lógica de negocio y comunicación</strong></p>
+
+El diagrama muestra cómo se establece la comunicación entre el cliente y el servidor mediante una separación clara de responsabilidades. En la parte superior se encuentran las capas lógicas, que representan la funcionalidad propia del cliente y del servidor. Estas capas se limitan a definir qué acciones deben llevarse a cabo, como enviar una apuesta o procesar el resultado, sin involucrarse en los detalles de la transmisión de datos.
+
+La capa inferior corresponde a la comunicación, implementada a través del componente `Protocol`. Su función principal es abstraer el manejo del socket y encargarse de todo lo relacionado con el envío y la recepción de mensajes. Cuando la lógica del cliente desea enviar una apuesta, se la entrega al componente, que se ocupa de serializarla y transmitirla al servidor. Del mismo modo, cuando el servidor recibe un mensaje, su instancia de `Protocol` lo deserializa y lo entrega a la lógica del servidor para que sea procesado.
+
+Una vez que el servidor determina el resultado de la apuesta, genera una respuesta de éxito o fallo y la pasa nuevamente a su `Protocol`. Este la serializa y la envía al cliente, donde el componente correspondiente se encarga de deserializarla y entregarla a la capa lógica. De esta forma, ambas partes pueden interactuar sin necesidad de gestionar directamente los aspectos de bajo nivel de la comunicación.
+
+En conjunto, el diagrama refleja un diseño en el que la lógica de negocio y la comunicación permanecen desacopladas. El cliente y el servidor se enfocan exclusivamente en las reglas y decisiones propias de la aplicación, mientras que el componente `Protocol` actúa como intermediario responsable de transformar y transportar los mensajes entre ambas partes.
+
+#### Ejecución
+
+Es importante resaltar que la apuesta es enviada hacia el servidor gracias a la existencia de nuevas variables de entorno del lado del cliente. Si quisiéramos utilizar otros valores para esas variables, estas se encuentran disponibles en el `generador_compose.py`, por lo tanto podremos generar un _docker compose_ con las directivas del [Ejercicio N°1](#ejercicio-n1), es decir, correr lo siguiente:
+
+```bash
+./generar-compose.sh <nombre_del_archivo> <numero_de_clientes>
+```
+
+Para la ejecución del protocolo debemos correr el _docker compose_ con el siguiente comando, si se llama `docker-compose-dev.yaml`:
+
+```bash
+make docker-compose-up
+```
+
+Si se llama distinto, usar:
+
+```bash
+docker compose -f <nombre_del_archivo> up -d --build
+```
+
+Si queremos ver los logs del cliente o el servidor, el comando es:
+
+```bash
+make docker-compose-logs
+```
+
+Las variables de entorno nuevas son:
+
+- CLI_NOMBRE
+- CLI_APELLIDO
+- CLI_DOCUMENTO
+- CLI_NACIMIENTO
+- CLI_NUMERO
+
+Estas se encuentran dentro del `generador_compose.py`, como ya mencionamos antes. Por lo que, para usar otros valores, modificamos los valores de las nuevas constantes definidas en el script en cuestión y volvemos a generar el archivo de _compose_.
 
 #### Referencias
 
