@@ -18,6 +18,7 @@ const (
 	OK_HEADER   = 0x02  // Header indicating a success response
 	FAIL_HEADER = 0x03  // Header indicating a failure response
 	BATCH_HEADER = 0x04 // Header indicating a batch of bets
+	FINISH_HEADER = 0x05 // Header indicating the end of transmission
 )
 
 // Protocol encapsulates the communication mechanism over a socket
@@ -163,4 +164,12 @@ func (p *Protocol) RecvOKMsg() error {
 	}
 
 	return nil
+}
+
+
+func (p *Protocol) SendFinishMsg() {
+	messageHeader := []byte{FINISH_HEADER}
+	if err := p.writeAll(messageHeader, SIZE_HEADER_BYTES); err != nil {
+		log.Error("failed to send finish message: %v", err)
+	}
 }

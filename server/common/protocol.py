@@ -32,6 +32,7 @@ class Protocol:
     OK_HEADER: bytes   = b"\x02"  # Header indicating a success response
     FAIL_HEADER: bytes = b"\x03"  # Header indicating a failure response
     BATCH_HEADER: bytes = b"\x04"  # Header indicating a batch of bets
+    FINISH_HEADER: bytes = b"\x05"  # Header indicating the end of transmission
 
     # --- Constants for formatting ---
     SEPARATOR: str          = ";"  # Message separator
@@ -47,7 +48,9 @@ class Protocol:
         It then reads the number of bets to expect, and subsequently receives each bet.
         """
         header: bytes = self.__recv_all(Protocol.SIZE_HEADER_BYTES)
-        if header != Protocol.BATCH_HEADER:
+        if header == Protocol.FINISH_HEADER:
+            return [], 0
+        elif header != Protocol.BATCH_HEADER:
             raise UnexpectedMessage("Invalid header")
 
         num_bets: int = self.__ntohs(self.__recv_all(Protocol.SIZE_LENGTH_BYTES))

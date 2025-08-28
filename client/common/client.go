@@ -141,6 +141,8 @@ func (c *Client) StartClientLoop() {
 		}
 	}
 
+	protocol.SendFinishMsg()
+
 	log.Infof("action: apuesta_recibida | result: success")
 	c.conn.Close()
 }
