@@ -123,7 +123,6 @@ func (p *Protocol) SendBatchBet(agencyID string, maxAmount int, reader io.Reader
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		const maxBets = 1000 // example max amount, adjust as needed
 		const maxBytes = 8 * 1024 // 8kB
 
 		bet, err := ProcessCSVLine(line)
@@ -131,42 +130,69 @@ func (p *Protocol) SendBatchBet(agencyID string, maxAmount int, reader io.Reader
 			return fmt.Errorf("failed to process bet: %w", err)
 		}
 
-		if packageSize + bet.SerializedBetLength(agencyID) > maxBytes {
-			break
+		if packageSize + bet.SerializedBetLength(agencyID) > maxBytes {		
+			if err := p.writeAll([]byte{BATCH_HEADER}, SIZE_HEADER_BYTES); err != nil {
+				return err
+			}
+
+			// Send batch length (number of bets)
+			batchLength := uint16(len(listOfBets))
+			if err := p.writeAll(htons(batchLength), SIZE_LENGTH_BYTES); err != nil {
+				return err
+			}
+
+			// For each bet, send length and serialized bet
+			for _, bet := range listOfBets {
+				betSerialized := []byte(bet.serializeBet(agencyID))
+				betLength := uint16(len(betSerialized))
+
+				// Send bet length
+				if err := p.writeAll(htons(betLength), SIZE_LENGTH_BYTES); err != nil {
+					return err
+				}
+
+				// Send bet serialized
+				if err := p.writeAll(betSerialized, int(betLength)); err != nil {
+					return err
+				}
+			}
+
+			listOfBets = make([]*Bet, 0)
 		}
 
 		listOfBets = append(listOfBets, bet)
 
-		if len(listOfBets) >= maxBets {
-			break
+		if len(listOfBets) >= maxAmount {
+						if err := p.writeAll([]byte{BATCH_HEADER}, SIZE_HEADER_BYTES); err != nil {
+				return err
+			}
+
+			// Send batch length (number of bets)
+			batchLength := uint16(len(listOfBets))
+			if err := p.writeAll(htons(batchLength), SIZE_LENGTH_BYTES); err != nil {
+				return err
+			}
+
+			// For each bet, send length and serialized bet
+			for _, bet := range listOfBets {
+				betSerialized := []byte(bet.serializeBet(agencyID))
+				betLength := uint16(len(betSerialized))
+
+				// Send bet length
+				if err := p.writeAll(htons(betLength), SIZE_LENGTH_BYTES); err != nil {
+					return err
+				}
+
+				// Send bet serialized
+				if err := p.writeAll(betSerialized, int(betLength)); err != nil {
+					return err
+				}
+			}
+
+			listOfBets = make([]*Bet, 0)
 		}
 	}
 	
-	if err := p.writeAll([]byte{BATCH_HEADER}, SIZE_HEADER_BYTES); err != nil {
-		return err
-	}
-
-	// Send batch length (number of bets)
-	batchLength := uint16(len(listOfBets))
-	if err := p.writeAll(htons(batchLength), SIZE_LENGTH_BYTES); err != nil {
-		return err
-	}
-
-	// For each bet, send length and serialized bet
-	for _, bet := range listOfBets {
-		betSerialized := []byte(bet.serializeBet(agencyID))
-		betLength := uint16(len(betSerialized))
-
-		// Send bet length
-		if err := p.writeAll(htons(betLength), SIZE_LENGTH_BYTES); err != nil {
-			return err
-		}
-
-		// Send bet serialized
-		if err := p.writeAll(betSerialized, int(betLength)); err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
