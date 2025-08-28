@@ -136,34 +136,22 @@ func (p *Protocol) SendBatchBet(ID string, batch *Batch) error {
 // RecvOKMsg waits for an acknowledgment message from the server.
 // The server should reply with a single-byte header = OK_HEADER (0x02).
 // Returns an error if the message is invalid or not received.
-func (p *Protocol) RecvOKMsg() error {
+func (p *Protocol) RecvOKMsg() (bool, int, error) {
 	ack := make([]byte, SIZE_HEADER_BYTES)
 	if err := p.readAll(ack, SIZE_HEADER_BYTES); err != nil {
-		return err
+		return false, 0, err
 	}
 
-	if ack[0] == FAIL_HEADER {
-		// Read length for fail message
-		lengthBytes := make([]byte, SIZE_LENGTH_BYTES)
-		if err := p.readAll(lengthBytes, SIZE_LENGTH_BYTES); err != nil {
-			return err
-		}
-		length := ntohs(lengthBytes)
-
-		// Read fail message
-		failMsg := make([]byte, length)
-		if err := p.readAll(failMsg, int(length)); err != nil {
-			return err
-		}
-
-		return fmt.Errorf("%s", string(failMsg))
+	numOfBets := make([]byte, SIZE_LENGTH_BYTES)
+	if err := p.readAll(numOfBets, SIZE_LENGTH_BYTES); err != nil {
+		return false, 0, err
 	}
 
 	if ack[0] != OK_HEADER {
-		return fmt.Errorf("invalid OK message")
+		return false, 0, fmt.Errorf("Invalid header")
 	}
 
-	return nil
+	return ack[0] == OK_HEADER, int(ntohs(numOfBets)), nil
 }
 
 

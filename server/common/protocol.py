@@ -86,19 +86,19 @@ class Protocol:
 
         self.__recv_bet()
 
-    def send_success_msg(self) -> None:
+    def send_success_msg(self, number_of_bets: int) -> None:
         """
         Send a success message to the client.
         """
         self._socket.sendall(Protocol.OK_HEADER)
+        self._socket.sendall(self.__htons(number_of_bets))
 
-    def send_failure_msg(self, err_msg: str) -> None:
+    def send_failure_msg(self, number_of_bets: int) -> None:
         """
         Send a failure message to the client.
         """
         self._socket.sendall(Protocol.FAIL_HEADER)
-        self._socket.sendall(self.__htons(len(err_msg)))
-        self._socket.sendall(err_msg.encode("utf-8"))
+        self._socket.sendall(self.__htons(number_of_bets))
 
     def __recv_bet(self) -> Bet:
         """

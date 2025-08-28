@@ -59,10 +59,10 @@ class Server:
                 store_bets(bets)
                 if errors > 0:
                     logging.error(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
-                    protocol.send_failure_msg(f"{errors} bets were invalid")
+                    protocol.send_failure_msg(len(bets))
                 elif len(bets) > 0:
                     logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
-                    protocol.send_success_msg()
+                    protocol.send_success_msg(len(bets))
                 else:
                     break
         except UnexpectedMessage as e:
