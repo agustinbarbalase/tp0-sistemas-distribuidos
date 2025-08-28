@@ -17,6 +17,8 @@ type ClientConfig struct {
 	ServerAddress string
 	LoopAmount    int
 	LoopPeriod    time.Duration
+	MaxAmount 	  int
+	DataFilePath  string
 }
 
 // Client Entity that encapsulates how
@@ -85,15 +87,14 @@ func (c *Client) StartClientLoop() {
 	
 	protocol := NewProtocol(c.conn)
 
-	filePath := os.Getenv("CLI_DATA_FILEPATH")
-	file, err := os.Open(filePath)
+	file, err := os.Open(c.config.DataFilePath)
 	if err != nil {
 		log.Error("Failed to open file: %v", err)
 		return
 	}
 	defer file.Close()
 
-	if err := protocol.SendBatchBet(c.config.ID, 100, file); err != nil {
+	if err := protocol.SendBatchBet(c.config.ID, c.config.MaxAmount, file); err != nil {
 		if !c.isClosed {
 			log.Error("action: crear_batch | result: fail | error: %v", err)
 			c.conn.Close()

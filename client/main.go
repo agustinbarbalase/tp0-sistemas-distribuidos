@@ -37,6 +37,8 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("loop", "period")
 	v.BindEnv("loop", "amount")
 	v.BindEnv("log", "level")
+	v.BindEnv("batch", "maxAmount")
+	v.BindEnv("data", "filepath")
 
 	// Try to read configuration from config file. If config file
 	// does not exists then ReadInConfig will fail but configuration
@@ -81,24 +83,14 @@ func InitLogger(logLevel string) error {
 // PrintConfig Print all the configuration parameters of the program.
 // For debugging purposes only
 func PrintConfig(v *viper.Viper) {
-	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s",
+	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s | max_amount: %v | data_file_path: %s",
 		v.GetString("id"),
 		v.GetString("server.address"),
 		v.GetInt("loop.amount"),
 		v.GetDuration("loop.period"),
 		v.GetString("log.level"),
-	)
-}
-
-// PrintBet Print all the bet parameters of the program.
-// For debugging purposes only
-func PrintBet() {
-	log.Infof("action: bet | result: success | nombre: %s | apellido: %s | documento: %s | nacimiento: %s | numero: %s",
-		os.Getenv("CLI_NOMBRE"),
-		os.Getenv("CLI_APELLIDO"),
-		os.Getenv("CLI_DOCUMENTO"),
-		os.Getenv("CLI_NACIMIENTO"),
-		os.Getenv("CLI_NUMERO"),
+		v.GetInt("batch.maxAmount"),
+		v.GetString("data.filepath"),
 	)
 }
 
@@ -115,14 +107,13 @@ func main() {
 	// Print program config with debugging purposes
 	PrintConfig(v)
 
-	// Print bet with debuggin purposes
-	PrintBet()
-
 	clientConfig := common.ClientConfig{
 		ServerAddress: v.GetString("server.address"),
 		ID:            v.GetString("id"),
 		LoopAmount:    v.GetInt("loop.amount"),
 		LoopPeriod:    v.GetDuration("loop.period"),
+		MaxAmount: 	   v.GetInt("batch.maxAmount"),
+		DataFilePath:  v.GetString("data.filepath"),
 	}
 
 	client := common.NewClient(clientConfig)
