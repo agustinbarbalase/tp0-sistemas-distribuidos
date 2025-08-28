@@ -130,7 +130,7 @@ func (p *Protocol) SendBatchBet(agencyID string, maxAmount int, reader io.Reader
 			return fmt.Errorf("failed to process bet: %w", err)
 		}
 
-		if packageSize + bet.SerializedBetLength(agencyID) > maxBytes {		
+		if packageSize + SIZE_LENGTH_BYTES + bet.SerializedBetLength(agencyID) > maxBytes {		
 			if err := p.writeAll([]byte{BATCH_HEADER}, SIZE_HEADER_BYTES); err != nil {
 				return err
 			}
@@ -160,6 +160,7 @@ func (p *Protocol) SendBatchBet(agencyID string, maxAmount int, reader io.Reader
 			listOfBets = make([]*Bet, 0)
 		}
 
+		packageSize += SIZE_LENGTH_BYTES + bet.SerializedBetLength(agencyID)
 		listOfBets = append(listOfBets, bet)
 
 		if len(listOfBets) >= maxAmount {
