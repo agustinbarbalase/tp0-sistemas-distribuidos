@@ -19,21 +19,6 @@ const (
 	FAIL_HEADER = 0x03  // Header indicating a failure response
 )
 
-// Consts for message formatting
-const (
-	SEPARATOR         = ";"  // Message separator
-	NUM_OF_ATTRIBUTES =  6   // Number of attributes in a bet message
-)
-
-// Bet represents the data structure of a betting message
-type Bet struct {
-	FirstName string
-	LastName  string
-	Document  int
-	Birthdate string
-	Number    int
-}
-
 // Protocol encapsulates the communication mechanism over a socket
 type Protocol struct {
 	Conn net.Conn
@@ -86,21 +71,6 @@ func (p *Protocol) writeAll(msg []byte, totalLength int) error {
 	return nil
 }
 
-// serializeBet serializes a Bet struct and an AgencyID into a string using the predefined separator.
-// The resulting string contains the following fields in order, separated by SEPARATOR:
-//   AgencyID;FirstName;LastName;Document;Birthdate;Number
-// This format is used for transmitting bet data over the network.
-func (p *Protocol) serializeBet(agencyID string, bet *Bet) string {
-	return fmt.Sprintf("%s%s%s%s%s%s%d%s%s%s%d",
-		agencyID, SEPARATOR,
-		bet.FirstName, SEPARATOR,
-		bet.LastName, SEPARATOR,
-		bet.Document, SEPARATOR,
-		bet.Birthdate, SEPARATOR,
-		bet.Number,
-	)
-}
-
 // SendBet sends a bet message to the server using the protocol format.
 // The message consists of:
 //   - A single-byte header indicating a bet message.
@@ -118,7 +88,7 @@ func (p *Protocol) SendBet(agencyID string, bet *Bet) error {
 		return err
 	}
 
-	betSerialize := p.serializeBet(agencyID, bet)
+	betSerialize := bet.serializeBet(agencyID)
 	betSerializeLength := len(betSerialize)
 
 	// Send length
