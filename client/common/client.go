@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"strconv"
 	"github.com/op/go-logging"
 )
 
@@ -78,43 +77,6 @@ func (c *Client) handleSignal() {
 	os.Exit(0)
 }
 
-// createBet constructs a Bet instance using environment variables for its fields.
-// It retrieves and parses the following environment variables:
-//   - NUMERO: the bet number (must be an integer)
-//   - DOCUMENTO: the user's document number (must be an integer)
-//   - NOMBRE: the user's first name
-//   - APELLIDO: the user's last name
-//   - NACIMIENTO: the user's birthdate
-// If NUMERO or DOCUMENTO cannot be parsed as integers, it logs an error and returns nil with the parsing error.
-// Returns a pointer to the created Bet and an error if any occurred during parsing.
-func (c *Client) createBet() (*Bet, error) {
-	number, err := strconv.Atoi(os.Getenv("CLI_NUMERO"))
-	if err != nil {
-		log.Error("action: numero_invalido | numero: %s | error: %s", os.Getenv("CLI_NUMERO"), err)
-		return nil, err
-	}
-
-	document, err := strconv.Atoi(os.Getenv("CLI_DOCUMENTO"))
-	if err != nil {
-		log.Error("action: documento_invalido | documento: %s | error: %s", os.Getenv("CLI_DOCUMENTO"), err)
-		return nil, err
-	}
-
-	birthdate := os.Getenv("CLI_NACIMIENTO")
-	if _, err := time.Parse(dateFormat, birthdate); err != nil {
-		log.Error("action: nacimiento_invalido | nacimiento: %s | error: %s", birthdate, err)
-		return nil, err
-	}
-
-	return &Bet{
-		FirstName: os.Getenv("CLI_NOMBRE"),
-		LastName:  os.Getenv("CLI_APELLIDO"),
-		Document:  document,
-		Birthdate: birthdate,
-		Number:    number,
-	}, nil
-}
-
 // StartClientLoop Send bets
 func (c *Client) StartClientLoop() {
 	if err := c.createClientSocket(); err != nil || c.isClosed {
@@ -122,17 +84,18 @@ func (c *Client) StartClientLoop() {
 	}
 	
 	protocol := NewProtocol(c.conn)
-	bet, err := c.createBet()
-	if err != nil {
-		if !c.isClosed {
-			c.conn.Close()
-		}
-		return
-	}	
 
-	if err := protocol.SendBet(c.config.ID, bet); err != nil {
+	filePath := os.Getenv("CLI_DATA_FILEPATH")
+	file, err := os.Open(filePath)
+	if err != nil {
+		log.Error("Failed to open file: %v", err)
+		return
+	}
+	defer file.Close()
+
+	if err := protocol.SendBatchBet(c.config.ID, 100, file); err != nil {
 		if !c.isClosed {
-			log.Error("action: apuesta_enviada | result: fail | dni: %v | numero: %v | error: %v", bet.Document, bet.Number, err)
+			log.Error("action: crear_batch | result: fail | error: %v", err)
 			c.conn.Close()
 		}
 		return
@@ -140,12 +103,12 @@ func (c *Client) StartClientLoop() {
 	
 	if err := protocol.RecvOKMsg(); err != nil {
 		if !c.isClosed {
-			log.Error("action: apuesta_enviada | result: fail | dni: %v | numero: %v | error: %v", bet.Document, bet.Number, err)
+			log.Error("action: apuesta_recibida | result: fail | error: %v", err)
 			c.conn.Close()
 		}
 		return
 	}
 
-	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", bet.Document, bet.Number)
+	log.Infof("action: apuesta_recibida | result: success")
 	c.conn.Close()
 }
