@@ -94,11 +94,11 @@ func PrintConfig(v *viper.Viper) {
 // For debugging purposes only
 func PrintBet() {
 	log.Infof("action: bet | result: success | nombre: %s | apellido: %s | documento: %s | nacimiento: %s | numero: %s",
-		os.Getenv("NOMBRE"),
-		os.Getenv("APELLIDO"),
-		os.Getenv("DOCUMENTO"),
-		os.Getenv("NACIMIENTO"),
-		os.Getenv("NUMERO"),
+		os.Getenv("CLI_NOMBRE"),
+		os.Getenv("CLI_APELLIDO"),
+		os.Getenv("CLI_DOCUMENTO"),
+		os.Getenv("CLI_NACIMIENTO"),
+		os.Getenv("CLI_NUMERO"),
 	)
 }
 

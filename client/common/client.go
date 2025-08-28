@@ -90,19 +90,19 @@ func (c *Client) handleSignal() {
 func (c *Client) createBet() (*Bet, error) {
 	number, err := strconv.Atoi(os.Getenv("CLI_NUMERO"))
 	if err != nil {
-		log.Error("action: numero_invalido | numero: %v | error: %v", os.Getenv("CLI_NUMERO"), err)
+		log.Error("action: numero_invalido | numero: %s | error: %s", os.Getenv("CLI_NUMERO"), err)
 		return nil, err
 	}
 
 	document, err := strconv.Atoi(os.Getenv("CLI_DOCUMENTO"))
 	if err != nil {
-		log.Error("action: documento_invalido | documento: %v | error: %v", os.Getenv("CLI_DOCUMENTO"), err)
+		log.Error("action: documento_invalido | documento: %s | error: %s", os.Getenv("CLI_DOCUMENTO"), err)
 		return nil, err
 	}
 
 	birthdate := os.Getenv("CLI_NACIMIENTO")
 	if _, err := time.Parse(dateFormat, birthdate); err != nil {
-		log.Error("action: nacimiento_invalido | nacimiento: %v | error: %v", birthdate, err)
+		log.Error("action: nacimiento_invalido | nacimiento: %s | error: %s", birthdate, err)
 		return nil, err
 	}
 

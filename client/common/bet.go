@@ -1,8 +1,8 @@
 package common
 
-const (
-	SEPARATOR         = ";"  // Message separator
-)
+import "fmt"
+
+const SEPARATOR = ";"  // Message separator
 
 // Bet represents the data structure of a betting message
 type Bet struct {
@@ -17,13 +17,13 @@ type Bet struct {
 // The resulting string contains the following fields in order, separated by SEPARATOR:
 //   AgencyID;FirstName;LastName;Document;Birthdate;Number
 // This format is used for transmitting bet data over the network.
-func (p *bet) serializeBet(agencyID string) string {
+func (b *Bet) serializeBet(agencyID string) string {
 	return fmt.Sprintf("%s%s%s%s%s%s%d%s%s%s%d",
 		agencyID, SEPARATOR,
-		bet.FirstName, SEPARATOR,
-		bet.LastName, SEPARATOR,
-		bet.Document, SEPARATOR,
-		bet.Birthdate, SEPARATOR,
-		bet.Number,
+		b.FirstName, SEPARATOR,
+		b.LastName, SEPARATOR,
+		b.Document, SEPARATOR,
+		b.Birthdate, SEPARATOR,
+		b.Number,
 	)
 }
