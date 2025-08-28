@@ -29,6 +29,7 @@ class Protocol:
     BET_HEADER: bytes  = b"\x01"  # Header indicating a bet message
     OK_HEADER: bytes   = b"\x02"  # Header indicating a success response
     FAIL_HEADER: bytes = b"\x03"  # Header indicating a failure response
+    BATCH_HEADER: bytes = b"\x04"  # Header indicating a batch of bets
 
     # --- Constants for formatting ---
     SEPARATOR: str          = ";"  # Message separator
@@ -37,7 +38,30 @@ class Protocol:
     def __init__(self, socket):
         self._socket = socket
 
-    def recv_bet(self) -> Bet:
+    def recv_batch_bets(self) -> list[Bet]:
+        """
+        Receives a batch of bets from the connection.
+        This method first reads and validates the batch header from the incoming data.
+        It then reads the number of bets to expect, and subsequently receives each bet.
+        """
+        header: bytes = self.__recv_all(Protocol.SIZE_HEADER_BYTES)
+        if header != Protocol.BATCH_HEADER:
+            raise UnexpectedMessage("Invalid header")
+
+        num_bets: int = self.__ntohs(self.__recv_all(Protocol.SIZE_LENGTH_BYTES))
+        bets = []
+        errors = 0
+
+        for _ in range(num_bets):
+            try:
+                bet = self.__recv_bet()
+                bets.append(bet)
+            except UnexpectedMessage as _:
+                errors += 1
+        
+        return bets, errors
+
+    def recv_one_bet(self) -> Bet:
         """
         Receive a bet message from the client.
 
@@ -54,10 +78,7 @@ class Protocol:
         if header != Protocol.BET_HEADER: 
             raise UnexpectedMessage("Invalid header")
 
-        length: int = self.__ntohs(self.__recv_all(Protocol.SIZE_LENGTH_BYTES))
-        bet_message: bytes = self.__recv_all(length)
-
-        return self.__deserialize_bet(bet_message)
+        self.__recv_bet()
 
     def send_success_msg(self) -> None:
         """
@@ -72,6 +93,18 @@ class Protocol:
         self._socket.sendall(Protocol.FAIL_HEADER)
         self._socket.sendall(self.__htons(len(err_msg)))
         self._socket.sendall(err_msg.encode("utf-8"))
+
+    def __recv_bet(self) -> Bet:
+        """
+        Receives a bet message from the socket, deserializes it, and returns a Bet object.
+
+        The function first reads the length of the incoming bet message, then reads the message itself,
+        and finally deserializes it into a Bet instance.
+        """
+        length: int = self.__ntohs(self.__recv_all(Protocol.SIZE_LENGTH_BYTES))
+        bet_message: bytes = self.__recv_all(length)
+
+        return self.__deserialize_bet(bet_message)
 
     def __deserialize_bet(self, bytes: bytes) -> Bet:
         """

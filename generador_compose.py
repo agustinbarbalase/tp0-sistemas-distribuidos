@@ -36,6 +36,7 @@ def define_client(file, number_of_client):
     f"      - CLI_NUMERO={NUMERO}\n"
     "    volumes:\n"
     "      - ./client/config.yaml:/config.yaml:ro\n"
+    f"     - ./.data/agency-{number_of_client}.csv:/agency-{number_of_client}.csv:ro\n"
     "    networks:\n"
     "      - testing_net\n"
     "    depends_on:\n"

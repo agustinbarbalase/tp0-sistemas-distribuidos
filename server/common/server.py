@@ -53,11 +53,14 @@ class Server:
         """
         try:
             protocol = Protocol(client_sock)
-            bet = protocol.recv_bet()
-            logging.info(f"action: apuesta_recibida | result: success | dni: {bet.document} | numero: {bet.number}")
-            store_bets([bet])
-            logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}")
-            protocol.send_success_msg()
+            bets, errors = protocol.recv_batch_bets()
+            store_bets(bets)
+            if errors > 0:
+                logging.error(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
+                protocol.send_failure_msg(f"{errors} bets were invalid")
+            else:
+                logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
+                protocol.send_success_msg()
         except UnexpectedMessage as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
             protocol.send_failure_msg("Invalid message sent")
