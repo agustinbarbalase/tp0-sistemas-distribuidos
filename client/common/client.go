@@ -126,7 +126,7 @@ func (c *Client) StartClientLoop() {
 			if status {
 				result = "success"
 			}
-			log.Infof("action: apuesta_recibida | result: %s | cantidad: %d", result, numOfBets)
+			log.Infof("action: apuesta_enviada | result: %s | cantidad: %d", result, numOfBets)
 
 			batch = NewBatch(c.config.MaxAmount, 8 * 1024)
 			batch.AddBet(c.config.ID, bet)
@@ -147,7 +147,7 @@ func (c *Client) StartClientLoop() {
 		if status {
 			result = "success"
 		}
-		log.Infof("action: apuesta_recibida | result: %s | cantidad: %d", result, numOfBets)
+		log.Infof("action: apuesta_enviada | result: %s | cantidad: %d", result, numOfBets)
 	}
 
 	protocol.SendFinishMsg()
