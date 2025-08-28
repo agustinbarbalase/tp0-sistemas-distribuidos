@@ -53,6 +53,7 @@ class Server:
         """
         try:
             protocol = Protocol(client_sock)
+            logging.debug("Waiting batch")
             bets, errors = protocol.recv_batch_bets()
             store_bets(bets)
             if errors > 0:

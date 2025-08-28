@@ -1,3 +1,5 @@
+import logging
+
 from .utils import Bet
 
 class UnexpectedMessage(Exception):
@@ -54,6 +56,7 @@ class Protocol:
 
         for _ in range(num_bets):
             try:
+                logging.debug("Waiting bet")
                 bet = self.__recv_bet()
                 bets.append(bet)
             except UnexpectedMessage as _:

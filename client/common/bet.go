@@ -43,9 +43,9 @@ func (b *Bet) serializeBet(agencyID string) string {
 	)
 }
 
-// SerializedBetLength returns the length of the serialized bet string for a given AgencyID.
-func (b *Bet) SerializedBetLength(agencyID string) int {
-	return len(b.serializeBet(agencyID))
+// PackagedBetLength returns the length of the serialized bet string for a given AgencyID.
+func (b *Bet) PackagedBetLength(agencyID string) int {
+	return SIZE_LENGTH_BYTES + len(b.serializeBet(agencyID))
 }
 
 // ProcessCSVLine parses a CSV line string and returns a Bet.

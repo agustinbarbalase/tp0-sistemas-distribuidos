@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"bufio"
 	"github.com/op/go-logging"
 )
 
@@ -94,20 +95,50 @@ func (c *Client) StartClientLoop() {
 	}
 	defer file.Close()
 
-	if err := protocol.SendBatchBet(c.config.ID, c.config.MaxAmount, file); err != nil {
-		if !c.isClosed {
-			log.Error("action: crear_batch | result: fail | error: %v", err)
-			c.conn.Close()
-		}
+	scanner := bufio.NewScanner(file)
+	if scanner == nil {
+		log.Error("failed to create scanner for file")
 		return
 	}
 	
-	if err := protocol.RecvOKMsg(); err != nil {
-		if !c.isClosed {
-			log.Error("action: apuesta_recibida | result: fail | error: %v", err)
-			c.conn.Close()
+	batch := NewBatch(c.config.MaxAmount, 8 * 1024)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		log.Debug("%s", line)
+		bet, err := ProcessCSVLine(line)
+		if err != nil {
+			log.Error("failed to process CSV line: %v", err)
+			continue
 		}
-		return
+
+		if !batch.AddBet(c.config.ID, bet) {
+			log.Debug("Sending batch")
+			if err := protocol.SendBatchBet(c.config.ID, batch); err != nil {
+				log.Error("failed to send batch bet: %v", err)
+				continue
+			}
+
+			log.Debug("Waiting OK")
+			if err := protocol.RecvOKMsg(); err != nil {
+				log.Error("failed to receive OK message: %v", err)
+			}
+
+			batch = NewBatch(c.config.MaxAmount, 8 * 1024)
+			batch.AddBet(c.config.ID, bet)
+		}
+	}
+
+	if batch.Amount > 0 {
+		log.Debug("Sending batch")
+		if err := protocol.SendBatchBet(c.config.ID, batch); err != nil {
+			log.Error("failed to send batch bet: %v", err)
+		}
+
+		log.Debug("Waiting OK")
+		if err := protocol.RecvOKMsg(); err != nil {
+			log.Error("failed to receive OK message: %v", err)
+		}
 	}
 
 	log.Infof("action: apuesta_recibida | result: success")
