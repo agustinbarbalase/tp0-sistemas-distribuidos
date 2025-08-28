@@ -105,7 +105,6 @@ func (c *Client) StartClientLoop() {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-		log.Debug("%s", line)
 		bet, err := ProcessCSVLine(line)
 		if err != nil {
 			log.Errorf("failed to process CSV line: %v", err)
@@ -113,13 +112,11 @@ func (c *Client) StartClientLoop() {
 		}
 
 		if !batch.AddBet(c.config.ID, bet) {
-			log.Debug("Sending batch")
 			if err := protocol.SendBatchBet(c.config.ID, batch); err != nil {
 				log.Errorf("failed to send batch bet: %v", err)
 				continue
 			}
 
-			log.Debug("Waiting OK")
 			status, numOfBets, err := protocol.RecvOKMsg()
 			if err != nil {
 				log.Errorf("failed to receive OK message: %v", err)
@@ -137,12 +134,10 @@ func (c *Client) StartClientLoop() {
 	}
 
 	if batch.Amount > 0 {
-		log.Debug("Sending batch")
 		if err := protocol.SendBatchBet(c.config.ID, batch); err != nil {
 			log.Errorf("failed to send batch bet: %v", err)
 		}
 
-		log.Debug("Waiting OK")
 		status, numOfBets, err := protocol.RecvOKMsg()
 		if err != nil {
 			log.Errorf("failed to receive OK message: %v", err)
