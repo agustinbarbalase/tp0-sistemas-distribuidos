@@ -80,12 +80,34 @@ func (c *Client) handleSignal() {
 	os.Exit(0)
 }
 
+// sendABatchBet sends a batch of bets to the server using the established protocol.
+// It transmits the batch, waits for an acknowledgment message, and logs the result.
+// Returns an error if sending the batch or receiving the acknowledgment fails.
+func (c *Client) sendABatchBet(protocol *Protocol, batch *Batch) error {
+	if err := protocol.SendBatchBet(c.config.ID, batch); err != nil {
+		return err
+	}
+
+	status, numOfBets, err := protocol.RecvOKMsg()
+	if err != nil {
+		return err
+	}
+
+	result := "failed"
+	if status {
+		result = "success"
+	}
+	log.Infof("action: apuesta_enviada | result: %s | cantidad: %d", result, numOfBets)
+	return nil
+}
+
 // StartClientLoop Send bets
 func (c *Client) StartClientLoop() {
 	if err := c.createClientSocket(); err != nil || c.isClosed {
 		return
 	}
-	
+	defer c.conn.Close()
+
 	protocol := NewProtocol(c.conn)
 
 	file, err := os.Open(c.config.DataFilePath)
@@ -112,21 +134,12 @@ func (c *Client) StartClientLoop() {
 		}
 
 		if !batch.AddBet(c.config.ID, bet) {
-			if err := protocol.SendBatchBet(c.config.ID, batch); err != nil {
+			if err := c.sendABatchBet(protocol, batch); err != nil {
+				if c.isClosed {
+					return
+				}
 				log.Errorf("failed to send batch bet: %v", err)
-				continue
 			}
-
-			status, numOfBets, err := protocol.RecvOKMsg()
-			if err != nil {
-				log.Errorf("failed to receive OK message: %v", err)
-			}
-
-			result := "failed"
-			if status {
-				result = "success"
-			}
-			log.Infof("action: apuesta_enviada | result: %s | cantidad: %d", result, numOfBets)
 
 			batch = NewBatch(c.config.MaxAmount, 8 * 1024)
 			batch.AddBet(c.config.ID, bet)
@@ -134,20 +147,12 @@ func (c *Client) StartClientLoop() {
 	}
 
 	if batch.Amount > 0 {
-		if err := protocol.SendBatchBet(c.config.ID, batch); err != nil {
+		if err := c.sendABatchBet(protocol, batch); err != nil {
+			if c.isClosed {
+				return
+			}
 			log.Errorf("failed to send batch bet: %v", err)
 		}
-
-		status, numOfBets, err := protocol.RecvOKMsg()
-		if err != nil {
-			log.Errorf("failed to receive OK message: %v", err)
-		}
-
-		result := "failed"
-		if status {
-			result = "success"
-		}
-		log.Infof("action: apuesta_enviada | result: %s | cantidad: %d", result, numOfBets)
 	}
 
 	protocol.SendFinishMsg()
