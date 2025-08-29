@@ -13,14 +13,15 @@ func NewBatch(MaxAmount int, MaxSize int) *Batch {
 		Bets:      make([]*Bet, 0),
 		MaxAmount: MaxAmount,
 		MaxSize:   MaxSize,
-		Amount:    SIZE_HEADER_BYTES + SIZE_LENGTH_BYTES,
-		Size:      0,
+		Amount:    0,
+		Size:      SIZE_HEADER_BYTES + SIZE_LENGTH_BYTES,
 	}
 }
 
 func (b *Batch) AddBet(ID string, bet *Bet) bool {
-	if b.Amount+1 < b.MaxAmount && SIZE_LENGTH_BYTES+bet.PackagedBetLength(ID) < b.MaxSize {
-		b.Size += bet.PackagedBetLength(ID)
+	lengthPackagedBet := bet.PackagedBetLength(ID)
+	if b.Amount+1 <= b.MaxAmount && b.Size+lengthPackagedBet <= b.MaxSize {
+		b.Size += lengthPackagedBet
 		b.Amount++
 		b.Bets = append(b.Bets, bet)
 		return true
