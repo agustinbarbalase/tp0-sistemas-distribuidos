@@ -106,13 +106,13 @@ func (c *Client) StartClientLoop() {
 	if err := c.createClientSocket(); err != nil || c.isClosed {
 		return
 	}
-	defer c.conn.Close()
 
 	protocol := NewProtocol(c.conn)
 
 	file, err := os.Open(c.config.DataFilePath)
 	if err != nil {
 		log.Errorf("Failed to open file: %v", err)
+		c.conn.Close()
 		return
 	}
 	defer file.Close()
@@ -120,6 +120,7 @@ func (c *Client) StartClientLoop() {
 	scanner := bufio.NewScanner(file)
 	if scanner == nil {
 		log.Errorf("failed to create scanner for file")
+		c.conn.Close()
 		return
 	}
 	
