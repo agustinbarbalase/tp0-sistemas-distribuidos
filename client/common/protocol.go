@@ -156,7 +156,6 @@ func (p *Protocol) RecvOKMsg() (bool, int, error) {
 	return ack[0] == OK_HEADER, int(ntohs(numOfBets)), nil
 }
 
-
 // SendFinishMsg sends a finish message to the remote endpoint using the protocol.
 // It constructs a message header with the FINISH_HEADER byte and writes it to the connection.
 // If the message fails to send, an error is logged.
