@@ -108,6 +108,11 @@ func (c *Client) StartClientLoop() {
 	}
 
 	protocol := NewProtocol(c.conn)
+	if err := protocol.SendIdentification(c.config.ID); err != nil {
+		log.Errorf("Failed to send identification: %v", err)
+		c.conn.Close()
+		return
+	}
 
 	file, err := os.Open(c.config.DataFilePath)
 	if err != nil {

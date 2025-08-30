@@ -19,6 +19,7 @@ const (
 	FAIL_HEADER = 0x03  // Header indicating a failure response
 	BATCH_HEADER = 0x04 // Header indicating a batch of bets
 	FINISH_HEADER = 0x05 // Header indicating the end of transmission
+	ID_HEADER = 0x06 // Header indicating identification message
 )
 
 // Protocol encapsulates the communication mechanism over a socket
@@ -166,6 +167,22 @@ func (p *Protocol) SendFinishMsg() {
 }
 
 
+func (p *Protocol) SendIdentification(agencyID string) error {
+	messageHeader := []byte{ID_HEADER}
+	if err := p.writeAll(messageHeader, SIZE_HEADER_BYTES); err != nil {
+		return err
+	}
+
+	// Send agency ID
+	agencyIDBytes := []byte(agencyID)
+	if err := p.writeAll(agencyIDBytes, len(agencyIDBytes)); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+	
 func (p *Protocol) RecvWinner() (*Bet, error) {
 	header := make([]byte, SIZE_HEADER_BYTES)
 	if err := p.readAll(header, SIZE_HEADER_BYTES); err != nil {
