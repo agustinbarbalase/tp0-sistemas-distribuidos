@@ -43,6 +43,23 @@ func (b *Bet) serializeBet(agencyID string) string {
 	)
 }
 
+func (b *Bet) Deserialize(data []byte) error {
+	// Split the data by the separator
+	fields := strings.Split(string(data), SEPARATOR)
+	if len(fields) != 6 {
+		return fmt.Errorf("invalid number of fields: expected 6, got %d", len(fields))
+	}
+
+	// Parse the fields
+	b.FirstName = fields[1]
+	b.LastName = fields[2]
+	b.Document, _ = strconv.Atoi(fields[3])
+	b.Birthdate = fields[4]
+	b.Number, _ = strconv.Atoi(fields[5])
+
+	return nil
+}
+
 // PackagedBetLength returns the length of the serialized bet string for a given AgencyID.
 func (b *Bet) PackagedBetLength(agencyID string) int {
 	return SIZE_LENGTH_BYTES + len(b.serializeBet(agencyID))

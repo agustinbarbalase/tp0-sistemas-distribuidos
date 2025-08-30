@@ -158,5 +158,22 @@ func (c *Client) StartClientLoop() {
 
 	protocol.SendFinishMsg()
 
+	winners := make([]*Bet, 0)
+
+	for {
+		winner, err := protocol.RecvWinner()
+		if err != nil {
+			log.Errorf("failed to receive winner: %v", err)
+			break
+		}
+		if winner == nil {
+			break
+		}
+		winners = append(winners, winner)
+	}
+	
+	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %d", len(winners))
+
+
 	c.conn.Close()
 }

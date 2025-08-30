@@ -164,3 +164,34 @@ func (p *Protocol) SendFinishMsg() {
 		log.Error("failed to send finish message: %v", err)
 	}
 }
+
+
+func (p *Protocol) RecvWinner() (*Bet, error) {
+	header := make([]byte, SIZE_HEADER_BYTES)
+	if err := p.readAll(header, SIZE_HEADER_BYTES); err != nil {
+		return nil, err
+	}
+
+	if header[0] != BET_HEADER {
+		return nil, fmt.Errorf("invalid header")
+	}
+
+	lengthBytes := make([]byte, SIZE_LENGTH_BYTES)
+	if err := p.readAll(lengthBytes, SIZE_LENGTH_BYTES); err != nil {
+		return nil, err
+	}
+
+	length := ntohs(lengthBytes)
+
+	winnerData := make([]byte, length)
+	if err := p.readAll(winnerData, int(length)); err != nil {
+		return nil, err
+	}
+
+	winner := &Bet{}
+	if err := winner.Deserialize(winnerData); err != nil {
+		return nil, err
+	}
+
+	return winner, nil
+}
