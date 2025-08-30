@@ -1,6 +1,6 @@
 import sys
 
-def define_server(file):
+def define_server(file, number_of_clients):
   file.write(
     "  server:\n"
     "    container_name: server\n"
@@ -8,6 +8,7 @@ def define_server(file):
     "    entrypoint: python3 /main.py\n"
     "    environment:\n"
     "      - PYTHONUNBUFFERED=1\n"
+    f"      - AMOUNT_OF_CLIENTS={number_of_clients}\n"
     "    volumes:\n"
     "      - ./server/config.ini:/config.ini:ro\n"
     "    networks:\n"
@@ -50,9 +51,9 @@ def create_docker_compose(filename, number_of_clients):
       "name: tp0\n"
       "services:\n"
     )
-    
-    define_server(file)
-    
+
+    define_server(file, number_of_clients)
+
     for i in range(1, number_of_clients + 1):
       define_client(file, i)
     
