@@ -58,7 +58,7 @@ class Server:
         for bet in load_bets():
             if has_won(bet):
                 try:
-                    client_sock = self._client_sockets[bet.client_id]
+                    client_sock = self._client_sockets[bet.agency]
                     protocol = Protocol(client_sock)
                     protocol.send_winner(bet)
                 except Exception as e:
@@ -81,11 +81,11 @@ class Server:
         client socket will also be closed
         """
         try:
-            while True:
-                protocol = Protocol(client_sock)
-                id = protocol.wait_identification()
-                self._client_sockets[id] = client_sock
+            protocol = Protocol(client_sock)
+            id = protocol.wait_identification()
+            self._client_sockets[id] = client_sock
 
+            while True:
                 bets, errors = protocol.recv_batch_bets()
                 store_bets(bets)
                 
@@ -107,8 +107,6 @@ class Server:
         except Exception as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
             protocol.send_failure_msg("Internal server error")
-        finally:
-            client_sock.close()
 
     def __accept_new_connection(self):
         """

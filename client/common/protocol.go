@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"strconv"
 )
 
 // Sizes of the different fields
@@ -173,9 +174,13 @@ func (p *Protocol) SendIdentification(agencyID string) error {
 		return err
 	}
 
-	// Send agency ID
-	agencyIDBytes := []byte(agencyID)
-	if err := p.writeAll(agencyIDBytes, len(agencyIDBytes)); err != nil {
+	agencyIDInt, err := strconv.Atoi(agencyID)
+	if err != nil {
+		return err
+	}
+
+	agencyIDBytes := []byte(htons(uint16(agencyIDInt)))
+	if err := p.writeAll(agencyIDBytes, SIZE_LENGTH_BYTES); err != nil {
 		return err
 	}
 
@@ -189,7 +194,9 @@ func (p *Protocol) RecvWinner() (*Bet, error) {
 		return nil, err
 	}
 
-	if header[0] != BET_HEADER {
+	if header[0] == FINISH_HEADER {
+		return nil, nil
+	} else if header[0] != BET_HEADER {
 		return nil, fmt.Errorf("invalid header")
 	}
 
