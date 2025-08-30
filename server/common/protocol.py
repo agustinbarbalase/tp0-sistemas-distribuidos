@@ -50,6 +50,11 @@ class Protocol:
 
         id: int = self.__ntohs(self.__recv_all(Protocol.SIZE_LENGTH_BYTES))
         return id
+    
+    def wait_for_finalization(self) -> None:
+        header: bytes = self.__recv_all(Protocol.SIZE_HEADER_BYTES)
+        if header != Protocol.FINISH_HEADER:
+            raise UnexpectedMessage("Invalid header")
 
     def send_winner(self, bet: Bet) -> None:
         """

@@ -179,6 +179,6 @@ func (c *Client) StartClientLoop() {
 	
 	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %d", len(winners))
 
-
+	protocol.SendFinishMsg()
 	c.conn.Close()
 }
