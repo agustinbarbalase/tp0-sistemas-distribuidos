@@ -161,7 +161,12 @@ func (c *Client) StartClientLoop() {
 		}
 	}
 
-	protocol.SendFinishMsg()
+	if err := protocol.SendFinishMsg(); err != nil {
+		if !c.isClosed {
+			c.conn.Close()
+			log.Errorf("failed to send finish message: %v", err)
+		}
+	}
 
 	winners := make([]*Bet, 0)
 
@@ -179,6 +184,12 @@ func (c *Client) StartClientLoop() {
 	
 	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %d", len(winners))
 
-	protocol.SendFinishMsg()
+	if err := protocol.SendFinishMsg(); err != nil {
+		if !c.isClosed {
+			c.conn.Close()
+			log.Errorf("failed to send finish message: %v", err)
+		}
+	}
+
 	c.conn.Close()
 }

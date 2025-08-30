@@ -160,11 +160,12 @@ func (p *Protocol) RecvOKMsg() (bool, int, error) {
 // SendFinishMsg sends a finish message to the remote endpoint using the protocol.
 // It constructs a message header with the FINISH_HEADER byte and writes it to the connection.
 // If the message fails to send, an error is logged.
-func (p *Protocol) SendFinishMsg() {
+func (p *Protocol) SendFinishMsg() error {
 	messageHeader := []byte{FINISH_HEADER}
 	if err := p.writeAll(messageHeader, SIZE_HEADER_BYTES); err != nil {
-		log.Error("failed to send finish message: %v", err)
+		return err
 	}
+	return nil
 }
 
 
