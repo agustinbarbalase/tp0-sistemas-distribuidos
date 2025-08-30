@@ -10,6 +10,7 @@ class Server:
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
+        self._server_socket.listen(listen_backlog)
         self._amount_of_clients = amount_of_clients
         self._client_sockets = {}
         self._is_closed = False
@@ -124,5 +125,7 @@ class Server:
             logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
             return c
         except OSError as err:
-            if not self._is_closed: raise err
+            if not self._is_closed: 
+                logging.error(f"action: accept_connections | result: fail | error: {err}")
+                raise err
             return None
