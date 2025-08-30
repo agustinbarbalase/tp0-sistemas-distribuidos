@@ -31,6 +31,7 @@ class Protocol:
     FAIL_HEADER: bytes = b"\x03"  # Header indicating a failure response
     BATCH_HEADER: bytes = b"\x04"  # Header indicating a batch of bets
     FINISH_HEADER: bytes = b"\x05"  # Header indicating the end of transmission
+    ID_HEADER: bytes  = b"\x06"  # Header indicating an identification message
 
     # --- Constants for formatting ---
     SEPARATOR: str          = ";"  # Message separator
@@ -39,7 +40,32 @@ class Protocol:
     def __init__(self, socket):
         self._socket = socket
 
-    def recv_batch_bets(self) -> list[Bet]:
+    def wait_identification(self) -> int:
+        """
+        Waits for an identification message from the client.
+        """
+        header: bytes = self.__recv_all(Protocol.SIZE_HEADER_BYTES)
+        if header != Protocol.ID_HEADER:
+            raise UnexpectedMessage("Invalid header")
+
+        id: int = self.__ntohs(self.__recv_all(Protocol.SIZE_LENGTH_BYTES))
+        return id
+
+    def send_winner(self, bet: Bet) -> None:
+        """
+        Sends a winning bet message to the client.
+        """
+        self._socket.sendall(Protocol.BET_HEADER)
+
+        bet_serialized = self.__serialize_bet(bet)
+
+        self._socket.sendall(self.__htons(len(bet_serialized)))
+        self._socket.sendall(bet_serialized)
+
+    def finish_lottery(self) -> None:
+        self._socket.sendall(Protocol.FINISH_HEADER)
+
+    def recv_batch_bets(self) -> tuple[list[Bet], int]:
         """
         Receives a batch of bets from the connection.
         This method first reads and validates the batch header from the incoming data.
@@ -81,7 +107,7 @@ class Protocol:
         if header != Protocol.BET_HEADER: 
             raise UnexpectedMessage("Invalid header")
 
-        self.__recv_bet()
+        return self.__recv_bet()
 
     def send_success_msg(self, number_of_bets: int) -> None:
         """
@@ -108,6 +134,13 @@ class Protocol:
         bet_message: bytes = self.__recv_all(length)
 
         return self.__deserialize_bet(bet_message)
+
+    def __serialize_bet(self, bet: Bet) -> bytes:
+        """
+        Serialize a Bet object into a byte sequence.
+        """
+        bet_data = f"{bet.agency}{Protocol.SEPARATOR}{bet.first_name}{Protocol.SEPARATOR}{bet.last_name}{Protocol.SEPARATOR}{bet.document}{Protocol.SEPARATOR}{bet.birthdate}{Protocol.SEPARATOR}{bet.number}"
+        return bet_data.encode("utf-8")
 
     def __deserialize_bet(self, bytes: bytes) -> Bet:
         """
