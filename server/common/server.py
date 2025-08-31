@@ -29,7 +29,8 @@ class Server:
 
         while not self._is_closed:
             client_sock = self.__accept_new_connection()
-            if self._is_closed: break
+            if self._is_closed: 
+                break
             self.__handle_client_connection(client_sock)
 
     def __shutdown(self):
@@ -90,5 +91,6 @@ class Server:
             logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
             return c
         except OSError as err:
-            if not self._is_closed: raise err
+            if not self._is_closed: 
+                raise err
             return None

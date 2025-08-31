@@ -39,7 +39,7 @@ class Protocol:
     def __init__(self, socket):
         self._socket = socket
 
-    def recv_batch_bets(self) -> list[Bet]:
+    def recv_batch_bets(self) -> tuple[list[Bet], int]:
         """
         Receives a batch of bets from the connection.
         This method first reads and validates the batch header from the incoming data.
@@ -63,25 +63,6 @@ class Protocol:
                 errors += 1
         
         return bets, errors
-
-    def recv_one_bet(self) -> Bet:
-        """
-        Receive a bet message from the client.
-
-        The function expects the message to start with a `BET_HEADER`,
-        followed by the fields encoded in separated by the following order:
-        - Agency number
-        - First name
-        - Last name
-        - Document number
-        - Birthdate
-        - Number
-        """
-        header: bytes = self.__recv_all(Protocol.SIZE_HEADER_BYTES)
-        if header != Protocol.BET_HEADER: 
-            raise UnexpectedMessage("Invalid header")
-
-        self.__recv_bet()
 
     def send_success_msg(self, number_of_bets: int) -> None:
         """
