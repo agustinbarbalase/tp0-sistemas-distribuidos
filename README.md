@@ -29,6 +29,8 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
       - [Referencias](#referencias-3)
     - [Ejercicio N°6](#ejercicio-n6)
       - [Ejecución](#ejecución-1)
+    - [Ejercicio N°7](#ejercicio-n7)
+      - [Ejecucion](#ejecucion-1)
   - [Instrucciones de uso](#instrucciones-de-uso)
     - [Servidor](#servidor-1)
     - [Cliente](#cliente-1)
@@ -44,7 +46,7 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
       - [Servidor](#servidor-2)
       - [Comunicación:](#comunicación)
     - [Ejercicio N°6:](#ejercicio-n6-1)
-    - [Ejercicio N°7:](#ejercicio-n7)
+    - [Ejercicio N°7:](#ejercicio-n7-1)
   - [Parte 3: Repaso de Concurrencia](#parte-3-repaso-de-concurrencia)
     - [Ejercicio N°8:](#ejercicio-n8)
   - [Condiciones de Entrega](#condiciones-de-entrega)
@@ -406,6 +408,42 @@ unzip dataset.zip
 ```
 
 Es importante que los archivos CSV esten dentro de la carpeta `.data`, para eso recomendamos hacer un `cd` dentro de la misma y luego correr el comando anterior. Luego necesitamos generar los clientes, podemos generar tantos como queramos, pero recomendamos hacerlo con 1. Para eso corremos el siguiente comando
+
+```bash
+./generar-compose.sh docker-compose-dev.yaml 1
+```
+
+Luego, levantamos el archivo _compose_ `docker-compose-dev.yaml`, con el siguiente comando
+
+```bash
+make docker-compose-up
+```
+
+Luego, podemos chequear los logs con el siguiente comando
+
+```bash
+make docker-compose-logs
+```
+
+### Ejercicio N°7
+
+En este ejercicio nos enfrentamos al desafio de añadir la funcionalidad de devolver los ganadores del sorteo, lo que llevo ademas a la aceptacion multiples clientes y sincronizarlos para que reciban sus respectivos ganadores, eso nos llevo a desarrollar una serie de mensajes que permitan esa sicronizacion. El primer paso fue definir una variable de entorno configurable con la cantidad de clientes llamada `AMOUNT_OF_CLIENTS` del lado del servidor y que se encuentra en el archivo `generador_compose.py`. Este nos permite saber cuantos clientes debemos manejar. En funcion de la cantidad de clientes que pidamos al script este seteara dicha variable.
+
+Para implementar esta funcionalidad, nuevamente mandamos todos los _batches_ de apuestas que las agencias, luego que todos los clientes fueron atendidos, es decir mandaron sus apuestas, el servidor se prepara para leer el archivo de apuestas y empezar a enviar los ganadores a las respectivas agencias. En primer lugar, debemos identificar a cada agencia, para eso usamos un nuevo mensaje del tipo `ID_HEADER` que incluye un 2 bytes correspondientes al ID de la agencia, esto permitira asociar un diccionario de IDs con los sockets de cada cliente.
+
+Una vez hecha la identificacion, procedemos a recibir los _batches_ de todos los clientes, cuando un cliente termine permanecera a la espera de los ganadores, pero para eso debera esperar que los demas clientes terminen. Una vez que todos terminan ahi procedemos a leer el archivo e identificar a los ganadores y se lo mandamos a su socket correspondiente en funcion del ID de agencia que tiene la apuesta, evitando hacer un _broadcast_ de todos los ganadores a todos los clientes.
+
+Finalizada la lectura, enviamos un mensaje del tipo `FINISH` que indica al cliente que la loteria ha terminado, el cliente guarda la lista de ganadores y sabe la cantidad de ganadores sabiendo el tamaño de la lista e imprime la cantidad.
+
+#### Ejecucion
+
+La ejecucion es muy similar al apartado anterior. Dejamos la explicacion paso a paso. Para la ejecucion de este ejercicio, necesitamos CSVs para los clientes. Para eso corremos el siguiente comando
+
+```bash
+unzip dataset.zip
+```
+
+Es importante que los archivos CSV esten dentro de la carpeta `.data`, para eso recomendamos hacer un `cd` dentro de la misma y luego correr el comando anterior. Luego necesitamos generar los clientes, podemos generar tantos como queramos. Para eso corremos el siguiente comando
 
 ```bash
 ./generar-compose.sh docker-compose-dev.yaml 1
