@@ -31,7 +31,8 @@ class Server:
 
         while not self._is_closed:
             client_sock = self.__accept_new_connection()
-            if self._is_closed: break
+            if self._is_closed: 
+                break
             self.__handle_client_connection(client_sock)
             if len(self._client_sockets) == self._amount_of_clients:
                 self.__announce_winners()
@@ -124,6 +125,5 @@ class Server:
             return c
         except OSError as err:
             if not self._is_closed: 
-                logging.error(f"action: accept_connections | result: fail | error: {err}")
                 raise err
             return None
