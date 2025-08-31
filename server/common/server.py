@@ -42,14 +42,16 @@ class Server:
             client_sock = self.__accept_new_connection()
             if self._is_closed:
                 break
+            manager = multiprocessing.Manager()
+            if not hasattr(self, '_client_sockets_proxy'):
+                self._client_sockets_proxy = manager.dict(self._client_sockets)
             thread = multiprocessing.Process(
                 target=self.__handle_client_connection,
                 args=(
                     client_sock,
+                    self._client_sockets_proxy,
                     self._barrier_for_winners,
-                    self._barrier_for_finish_connection,
                     self._store_lock,
-                    self._load_lock,
                 ),
             )
             thread.start()
@@ -82,15 +84,15 @@ class Server:
         for bet in load_bets():
             if has_won(bet):
                 try:
-                    client_sock = self._client_sockets[bet.agency]
+                    client_sock = self._client_sockets_proxy[bet.agency]
                     protocol = Protocol(client_sock)
                     protocol.send_winner(bet)
                 except Exception as e:
                     logging.error(
-                        f"action: receive_message | result: fail | error: {e}"
+                        f"action: receifsadfasfdve_message | result: fail | error: {e}"
                     )
 
-        for client_socket in self._client_sockets.values():
+        for client_socket in self._client_sockets_proxy.values():
             try:
                 protocol = Protocol(client_socket)
                 protocol.finish_lottery()
@@ -102,6 +104,7 @@ class Server:
     def __handle_client_connection(
         self,
         client_sock,
+        client_sockets,
         barrier_for_winners,
         store_lock,
     ):
@@ -114,7 +117,7 @@ class Server:
         try:
             protocol = Protocol(client_sock)
             id = protocol.wait_identification()
-            self._client_sockets[id] = client_sock
+            client_sockets[id] = client_sock
 
             while True:
                 bets, errors = protocol.recv_batch_bets()
@@ -136,7 +139,7 @@ class Server:
                     break
 
             barrier_for_winners.wait()
-
+            exit(0)
         except UnexpectedMessage as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
             protocol.send_failure_msg("Invalid message sent")
