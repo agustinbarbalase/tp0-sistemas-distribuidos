@@ -27,6 +27,8 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
       - [Separación de responsabilidades](#separación-de-responsabilidades)
       - [Ejecución](#ejecución)
       - [Referencias](#referencias-3)
+    - [Ejercicio N°6](#ejercicio-n6)
+      - [Ejecución](#ejecución-1)
   - [Instrucciones de uso](#instrucciones-de-uso)
     - [Servidor](#servidor-1)
     - [Cliente](#cliente-1)
@@ -41,7 +43,7 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
       - [Cliente](#cliente-2)
       - [Servidor](#servidor-2)
       - [Comunicación:](#comunicación)
-    - [Ejercicio N°6:](#ejercicio-n6)
+    - [Ejercicio N°6:](#ejercicio-n6-1)
     - [Ejercicio N°7:](#ejercicio-n7)
   - [Parte 3: Repaso de Concurrencia](#parte-3-repaso-de-concurrencia)
     - [Ejercicio N°8:](#ejercicio-n8)
@@ -384,6 +386,42 @@ Es importante resaltar que el documento y el número sean efectivamente valores 
 5. Built-in Types. (n.d.). Python Documentation. Retrieved August 24, 2025, from [https://docs.python.org/3/library/stdtypes.html](https://docs.python.org/3/library/stdtypes.html)
 6. binary package - encoding/binary - Go Packages. (n.d.). Retrieved August 24, 2025, from [https://pkg.go.dev/encoding/binary](https://pkg.go.dev/encoding/binary)
 
+
+### Ejercicio N°6
+
+En esta seccion, explicaremos todo lo referente al envio de multiples apuestas en un mismo mensaje, a traves de la lectura de archivos CSV. Las principales modificaciones son tanto del lado del cliente, como del lado del servidor. De lado del cliente, ahora generamos una variable de entorno que asocia donde esta el path del archivo que queremos leer. A su vez, generamos un volumen para asociar un archivo del host con el que definimos en esta variable de entorno. La variable de entorno se llama `CLI_DATA_FILEPATH`, tanto el volumen, como la variable de entorno fueron agregadas al `generador_compose.py` para facilitar la creacion del _docker compose_.
+
+Hubo cambios en el protocolo de comunacion entre el cliente y el servidor para facilitar la llegada de los _batches_, esto nos llevo a la creacion de un nuevo _code message_ referente a la llegada de estos _batches_, el cual se llama `BATCH` y ademas tiene un tamaño correspondiente a su _header_, que nos indica cuantas apuestas hay en el mensaje y de esa forma facilitar la lectura del mismo.
+
+Del lado del servidor, estas apuestas se levanta y se guardan en un archivo. Por otro lado, sabemos que existen restricciones respecto a cuantas apuestas pueden ser enviadas y cuanto es el tamaño del paquete a ser enviado. Para la cuestion referente a la cantidad de apuestas, esta es una variable de entorno configurable llamada `CLI_BATCH_MAX_AMOUNT` en el cliente, por el lado del tamaño de paquete este es una constante escrita en el cliente, seteada en 8 kB.
+
+Esta restriccion nos llevo a implementar otro _code message_ llamado `FINISH` para indicarle al servidor que ya hemos enviado todas las apuestas en diferentes _batches_ y evitar que el cliente se desconecte y reconecte varias veces, para diferentes _batches_. Por el otro lado, agregamos un _header_ de 2 bytes tanto al `OK` como al `FAIL` para indicar advertirle al cliente, cuantas apuestas fueron efectivamente guardadas. El `FAIL` indica al cliente que no fueron todas guardadas en forma efectiva, pero no cuales.
+
+#### Ejecución
+
+Para la ejecucion de este ejercicio, necesitamos CSVs para los clientes. Para eso corremos el siguiente comando
+
+```bash
+unzip dataset.zip
+```
+
+Es importante que los archivos CSV esten dentro de la carpeta `.data`, para eso recomendamos hacer un `cd` dentro de la misma y luego correr el comando anterior. Luego necesitamos generar los clientes, podemos generar tantos como queramos, pero recomendamos hacerlo con 1. Para eso corremos el siguiente comando
+
+```bash
+./generar-compose.sh docker-compose-dev.yaml 1
+```
+
+Luego, levantamos el archivo _compose_ `docker-compose-dev.yaml`, con el siguiente comando
+
+```bash
+make docker-compose-up
+```
+
+Luego, podemos chequear los logs con el siguiente comando
+
+```bash
+make docker-compose-logs
+```
 
 ## Instrucciones de uso
 El repositorio cuenta con un **Makefile** que incluye distintos comandos en forma de targets. Los targets se ejecutan mediante la invocación de:  **make \<target\>**. Los target imprescindibles para iniciar y detener el sistema son **docker-compose-up** y **docker-compose-down**, siendo los restantes targets de utilidad para el proceso de depuración.
