@@ -95,25 +95,6 @@ class Protocol:
         
         return bets, errors
 
-    def recv_one_bet(self) -> Bet:
-        """
-        Receive a bet message from the client.
-
-        The function expects the message to start with a `BET_HEADER`,
-        followed by the fields encoded in separated by the following order:
-        - Agency number
-        - First name
-        - Last name
-        - Document number
-        - Birthdate
-        - Number
-        """
-        header: bytes = self.__recv_all(Protocol.SIZE_HEADER_BYTES)
-        if header != Protocol.BET_HEADER: 
-            raise UnexpectedMessage("Invalid header")
-
-        return self.__recv_bet()
-
     def send_success_msg(self, number_of_bets: int) -> None:
         """
         Send a success message to the client.
