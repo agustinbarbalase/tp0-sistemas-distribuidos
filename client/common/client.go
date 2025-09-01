@@ -1,12 +1,13 @@
 package common
 
 import (
+	"bufio"
 	"net"
-	"time"
 	"os"
 	"os/signal"
 	"syscall"
-	"bufio"
+	"time"
+
 	"github.com/op/go-logging"
 )
 
@@ -18,27 +19,25 @@ type ClientConfig struct {
 	ServerAddress string
 	LoopAmount    int
 	LoopPeriod    time.Duration
-	MaxAmount 	  int
+	MaxAmount     int
 	DataFilePath  string
 }
 
 // Client Entity that encapsulates how
 type Client struct {
-	config    ClientConfig
-	conn      net.Conn
+	config        ClientConfig
+	conn          net.Conn
 	signalChannel chan os.Signal
-	isClosed  bool
+	isClosed      bool
 }
-
-const dateFormat = "2006-01-02"
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
 func NewClient(config ClientConfig) *Client {
 	client := &Client{
-		config: config,
+		config:        config,
 		signalChannel: make(chan os.Signal, 1),
-		isClosed: false,
+		isClosed:      false,
 	}
 	signal.Notify(client.signalChannel, syscall.SIGTERM)
 	go client.handleSignal()
@@ -123,32 +122,11 @@ func (c *Client) StartClientLoop() {
 		c.conn.Close()
 		return
 	}
-	
-	batch := NewBatch(c.config.MaxAmount, 8 * 1024)
 
-	for scanner.Scan() {
-		line := scanner.Text()
-		bet, err := ProcessCSVLine(line)
-		if err != nil {
-			log.Errorf("failed to process CSV line: %v", err)
-			continue
-		}
+	batchIterator := CreateIteratorByScanner(c.config.ID, scanner, c.config.MaxAmount)
 
-		if !batch.AddBet(c.config.ID, bet) {
-			if err := c.sendABatchBet(protocol, batch); err != nil {
-				if c.isClosed {
-					return
-				}
-				log.Errorf("failed to send batch bet: %v", err)
-			}
-
-			batch = NewBatch(c.config.MaxAmount, 8 * 1024)
-			batch.AddBet(c.config.ID, bet)
-		}
-	}
-
-	if batch.Amount > 0 {
-		if err := c.sendABatchBet(protocol, batch); err != nil {
+	for currBatch := batchIterator.GetCurrent(); batchIterator.HasNext(); batchIterator.Next() {
+		if err := c.sendABatchBet(protocol, currBatch); err != nil {
 			if c.isClosed {
 				return
 			}
