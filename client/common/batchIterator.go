@@ -5,63 +5,59 @@ import (
 )
 
 type BatchIterator struct {
-	agencyID       string
-	scanner        *bufio.Scanner
-	maxAmount      int
-	lastLineReaded string
+	agencyID   string
+	scanner    *bufio.Scanner
+	maxAmount  int
+	currBatch  *Batch
+	pendingBet *Bet
+	done       bool
 }
 
-// CreateIteratorByScanner reads lines from the provided bufio.Scanner, processes each line as a bet,
-// and groups bets into batches according to the specified maxAmount and maxSize constraints.
-// Invalid CSV lines are skipped and logged as errors.
+// CreateIteratorByScanner initializes and returns a new BatchIterator for the specified agency.
+// It uses the provided bufio.Scanner to read input and processes batches up to maxAmount.
+// The iterator maintains its internal state for batch processing and pending bets.
 func CreateIteratorByScanner(agencyID string, scanner *bufio.Scanner, maxAmount int) *BatchIterator {
 	return &BatchIterator{
-		agencyID:  agencyID,
-		scanner:   scanner,
-		maxAmount: maxAmount,
-		lastLineReaded: "",
+		agencyID:   agencyID,
+		scanner:    scanner,
+		maxAmount:  maxAmount,
+		currBatch:  nil,
+		pendingBet: nil,
+		done:       false,
 	}
 }
 
-// HasNext returns true if there are more batches to iterate over.
-// It checks whether the current index is less than the total number of batches.
-func (it *BatchIterator) HasNext() bool {
-	return it.scanner.Text() != ""
-}
+// Next reads the next batch from the scanner and returns it.
+// Returns nil and false when there are no more batches.
+func (it *BatchIterator) Next() (*Batch, bool) {
+	if it.done {
+		return nil, false
+	}
 
-// GetCurrent returns the current Batch in the iterator without advancing the iterator.
-// If there are no more batches, it returns nil.
-func (it *BatchIterator) GetCurrent() *Batch {
 	batch := NewBatch(it.maxAmount)
-
-	if it.lastLineReaded != "" {
-		bet, err := ProcessCSVLine(it.lastLineReaded)
-		if err != nil {
-			log.Errorf("failed to process CSV line: %v", err)
-		}
-		batch.AddBet(it.agencyID, bet)
+	if it.pendingBet != nil {
+		batch.AddBet(it.agencyID, it.pendingBet)
+		it.pendingBet = nil
 	}
 
 	for it.scanner.Scan() {
-		it.lastLineReaded = it.scanner.Text()
-		bet, err := ProcessCSVLine(it.lastLineReaded)
+		line := it.scanner.Text()
+		bet, err := ProcessCSVLine(line)
 		if err != nil {
 			log.Errorf("failed to process CSV line: %v", err)
 			continue
 		}
 
 		if !batch.AddBet(it.agencyID, bet) {
-			batch = NewBatch(it.maxAmount)
-			batch.AddBet(it.agencyID, bet)
+			it.pendingBet = bet
 			break
 		}
 	}
 
-	return batch
-}
+	if batch.Amount == 0 {
+		it.done = true
+		return nil, false
+	}
 
-// Next advances the iterator to the next batch by incrementing the index.
-// If there are no more batches, it does nothing.
-func (it *BatchIterator) Next() {
-	it.scanner.Scan()
+	return batch, true
 }
