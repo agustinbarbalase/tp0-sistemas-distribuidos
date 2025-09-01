@@ -3,6 +3,7 @@ import logging
 import signal
 import multiprocessing
 
+from threading import BrokenBarrierError
 from .protocol import Protocol, UnexpectedMessage, ConnectionClose
 from .utils import store_bets, load_bets, has_won
 
@@ -17,9 +18,6 @@ class Server:
         self._client_sockets = {}
         self._client = []
         self._barrier_for_winners = multiprocessing.Barrier(amount_of_clients + 1)
-        self._barrier_for_finish_connection = multiprocessing.Barrier(
-            amount_of_clients + 1
-        )
         self._store_lock = multiprocessing.Lock()
         self._load_lock = multiprocessing.Lock()
         self._is_closed = False
@@ -43,7 +41,7 @@ class Server:
             if self._is_closed:
                 break
             manager = multiprocessing.Manager()
-            if not hasattr(self, '_client_sockets_proxy'):
+            if not hasattr(self, "_client_sockets_proxy"):
                 self._client_sockets_proxy = manager.dict(self._client_sockets)
             thread = multiprocessing.Process(
                 target=self.__handle_client_connection,
@@ -61,6 +59,13 @@ class Server:
                 for t in self._client:
                     t.join()
                 self.__announce_winners()
+
+        for client_sock in self._client_sockets_proxy.values():
+            self._barrier_for_winners.abort()
+            protocol = Protocol(client_sock)
+            protocol.finish_lottery()
+            client_sock.close()
+            self._client_sockets_proxy.close()
 
     def __shutdown(self):
         """
@@ -139,6 +144,8 @@ class Server:
                     break
 
             barrier_for_winners.wait()
+            exit(0)
+        except BrokenBarrierError as _:
             exit(0)
         except UnexpectedMessage as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
