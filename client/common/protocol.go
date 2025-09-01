@@ -23,6 +23,10 @@ const (
 	ID_HEADER = 0x06 // Header indicating identification message
 )
 
+// MAX_SIZE_PACKAGE_IN_BYTES defines the maximum allowed size (in bytes) for a package.
+// This constant is set to 8 kB
+const MAX_SIZE_PACKAGE_IN_BYTES = 8 * 1024
+
 // Protocol encapsulates the communication mechanism over a socket
 type Protocol struct {
 	Conn net.Conn
