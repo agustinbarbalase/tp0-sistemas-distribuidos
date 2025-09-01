@@ -37,6 +37,11 @@ class Server:
             if len(self._client_sockets) == self._amount_of_clients:
                 self.__announce_winners()
 
+        for client_socket in self._client_sockets.values():
+            protocol = Protocol(client_socket)
+            protocol.finish_lottery()
+            client_socket.close()
+
     def __shutdown(self):
         """
         Gracefull shutdown
