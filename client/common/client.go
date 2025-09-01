@@ -129,9 +129,13 @@ func (c *Client) StartClientLoop() {
 	}
 
 	batchIterator := CreateIteratorByScanner(c.config.ID, scanner, c.config.MaxAmount)
-
-	for currBatch := batchIterator.GetCurrent(); batchIterator.HasNext(); batchIterator.Next() {
-		if err := c.sendABatchBet(protocol, currBatch); err != nil {
+	
+	for {
+		batch, ok := batchIterator.Next()
+		if !ok {
+			break
+		}
+		if err := c.sendABatchBet(protocol, batch); err != nil {
 			if c.isClosed {
 				return
 			}
