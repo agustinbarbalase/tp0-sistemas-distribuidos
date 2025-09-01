@@ -12,7 +12,7 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self._amount_of_clients = amount_of_clients
-        self._client_sockets = {}
+        self._client_protocols = {}
         self._is_closed = False
 
         def handle_signal(signum, frame):
@@ -34,10 +34,10 @@ class Server:
             if self._is_closed: 
                 break
             self.__handle_client_connection(client_sock)
-            if len(self._client_sockets) == self._amount_of_clients:
+            if len(self._client_protocols) == self._amount_of_clients:
                 self.__announce_winners()
 
-        for client_socket in self._client_sockets.values():
+        for client_socket in self._client_protocols.values():
             protocol = Protocol(client_socket)
             protocol.finish_lottery()
             client_socket.close()
@@ -54,30 +54,55 @@ class Server:
         self._server_socket.close()
         logging.info('action: shutdown | result: success')
 
+    def __send_winners_to_agencies(self):
+        """
+        Sends winning bets to their respective agencies.
+        """
+        for bet in load_bets():
+            if has_won(bet):
+                try:
+                    client_protocol = self._client_protocols[bet.agency]
+                    client_protocol.send_winner(bet)
+                except Exception as e:
+                    logging.error(f"action: receive_message | result: fail | error: {e}")
+
+    def __finish_lottery(self):
+        """
+        Notifies all connected clients that the lottery has finished.
+        """
+        for client_protocol in self._client_protocols.values():
+            try:
+                client_protocol.finish_lottery()
+                client_protocol.close()
+            except Exception as e:
+                logging.error(f"action: receive_message | result: fail | error: {e}")
+
     def __announce_winners(self):
         """
         Announce the winners
 
         Function used to announce the winners of the game
         """
+        self.__send_winners_to_agencies()
+        self.__finish_lottery()
 
-        for bet in load_bets():
-            if has_won(bet):
-                try:
-                    client_sock = self._client_sockets[bet.agency]
-                    protocol = Protocol(client_sock)
-                    protocol.send_winner(bet)
-                except Exception as e:
-                    logging.error(f"action: receive_message | result: fail | error: {e}")
-        
-        for client_socket in self._client_sockets.values():
-            try:
-                protocol = Protocol(client_socket)
-                protocol.finish_lottery()
-            except Exception as e:
-                logging.error(f"action: receive_message | result: fail | error: {e}")
-            finally:
-                client_socket.close()
+    def __recv_bets_from_agencies(self, protocol):
+        id = protocol.wait_identification()
+        self._client_protocols[id] = protocol
+
+        while True:
+            bets, errors = protocol.recv_batch_bets()
+            store_bets(bets)
+            
+            if errors > 0:
+                logging.error(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
+                protocol.send_failure_msg(len(bets))
+            elif len(bets) > 0:
+                logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
+                protocol.send_success_msg(len(bets))
+            elif len(bets) == 0:
+                logging.info("action: esperando_ganador | result: success")
+                break
 
     def __handle_client_connection(self, client_sock):
         """
@@ -88,23 +113,7 @@ class Server:
         """
         try:
             protocol = Protocol(client_sock)
-            id = protocol.wait_identification()
-            self._client_sockets[id] = client_sock
-
-            while True:
-                bets, errors = protocol.recv_batch_bets()
-                store_bets(bets)
-                
-                if errors > 0:
-                    logging.error(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
-                    protocol.send_failure_msg(len(bets))
-                elif len(bets) > 0:
-                    logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
-                    protocol.send_success_msg(len(bets))
-                elif len(bets) == 0:
-                    logging.info("action: esperando_ganador | result: success")
-                    break
-
+            self.__recv_bets_from_agencies(protocol)
         except UnexpectedMessage as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
             protocol.send_failure_msg("Invalid message sent")
