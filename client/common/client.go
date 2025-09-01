@@ -100,19 +100,9 @@ func (c *Client) sendABatchBet(protocol *Protocol, batch *Batch) error {
 	return nil
 }
 
-// StartClientLoop Send bets
-func (c *Client) StartClientLoop() {
-	if err := c.createClientSocket(); err != nil || c.isClosed {
-		return
-	}
-
-	protocol := NewProtocol(c.conn)
-	if err := protocol.SendIdentification(c.config.ID); err != nil {
-		log.Errorf("Failed to send identification: %v", err)
-		c.conn.Close()
-		return
-	}
-
+// sendAllBatches reads data from the file specified in the configuration,
+// splits the data into batches using a batch iterator, and sends each batch to the server.
+func (c *Client) sendAllBatches(p *Protocol) {
 	file, err := os.Open(c.config.DataFilePath)
 	if err != nil {
 		log.Errorf("Failed to open file: %v", err)
@@ -135,7 +125,7 @@ func (c *Client) StartClientLoop() {
 		if !ok {
 			break
 		}
-		if err := c.sendABatchBet(protocol, batch); err != nil {
+		if err := c.sendABatchBet(p, batch); err != nil {
 			if c.isClosed {
 				return
 			}
@@ -143,17 +133,20 @@ func (c *Client) StartClientLoop() {
 		}
 	}
 
-	if err := protocol.SendFinishMsg(); err != nil {
+	if err := p.SendFinishMsg(); err != nil {
 		if !c.isClosed {
 			c.conn.Close()
 			log.Errorf("failed to send finish message: %v", err)
 		}
 	}
+}
 
+// recvWinners receives winner bets from the provided Protocol.
+func (c *Client) recvWinners(p *Protocol) []*Bet {
 	winners := make([]*Bet, 0)
 
 	for {
-		winner, err := protocol.RecvWinner()
+		winner, err := p.RecvWinner()
 		if err != nil {
 			log.Errorf("failed to receive winner: %v", err)
 			break
@@ -164,6 +157,25 @@ func (c *Client) StartClientLoop() {
 		winners = append(winners, winner)
 	}
 	
+	return winners
+}
+
+// StartClient Send bets
+func (c *Client) StartClient() {
+	if err := c.createClientSocket(); err != nil || c.isClosed {
+		return
+	}
+
+	protocol := NewProtocol(c.conn)
+	if err := protocol.SendIdentification(c.config.ID); err != nil {
+		log.Errorf("Failed to send identification: %v", err)
+		c.conn.Close()
+		return
+	}
+
+	c.sendAllBatches(protocol)
+	winners := c.recvWinners(protocol)
+
 	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %d", len(winners))
 
 	c.conn.Close()
