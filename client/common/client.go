@@ -100,8 +100,8 @@ func (c *Client) sendABatchBet(protocol *Protocol, batch *Batch) error {
 	return nil
 }
 
-// StartClientLoop Send bets
-func (c *Client) StartClientLoop() {
+// StartClient Send bets
+func (c *Client) StartClient() {
 	if err := c.createClientSocket(); err != nil || c.isClosed {
 		return
 	}
