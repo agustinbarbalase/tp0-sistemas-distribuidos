@@ -49,6 +49,15 @@ func NewProtocol(conn net.Conn) *Protocol {
 	}
 }
 
+// Close terminates the connection associated with the Protocol instance.
+// If a connection exists, it is closed and the Conn field is set to nil.
+func (p *Protocol) Close() {
+	if p.Conn != nil {
+		p.Conn.Close()
+	}
+	p.Conn = nil
+}
+
 // readAll ensures that exactly `totalLength` bytes are read from the connection.
 // Keeps reading until the expected number of bytes is retrieved.
 func (p *Protocol) readAll(msg []byte, totalLength int) error {

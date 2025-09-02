@@ -26,7 +26,7 @@ type ClientConfig struct {
 // Client Entity that encapsulates how
 type Client struct {
 	config        ClientConfig
-	conn          net.Conn
+	protocol      *Protocol
 	signalChannel chan os.Signal
 	isClosed      bool
 }
@@ -56,7 +56,7 @@ func (c *Client) createClientSocket() error {
 			err,
 		)
 	}
-	c.conn = conn
+	c.protocol = NewProtocol(conn)
 	return nil
 }
 
@@ -64,8 +64,8 @@ func (c *Client) createClientSocket() error {
 func (c *Client) shutdown() {
 	log.Infof("action: shutdown | result: in_progress | client_id: %v", c.config.ID)
 	c.isClosed = true
-	if c.conn != nil {
-		c.conn.Close()
+	if c.protocol != nil {
+		c.protocol.Close()
 	}
 	log.Infof("action: shutdown | result: success | client_id: %v", c.config.ID)
 }
@@ -106,20 +106,17 @@ func (c *Client) StartClient() {
 		return
 	}
 
-	protocol := NewProtocol(c.conn)
-
 	file, err := os.Open(c.config.DataFilePath)
 	if err != nil {
 		log.Errorf("Failed to open file: %v", err)
-		c.conn.Close()
-		return
+		c.protocol.Close()
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	if scanner == nil {
 		log.Errorf("failed to create scanner for file")
-		c.conn.Close()
+		c.protocol.Close()
 		return
 	}
 
@@ -130,7 +127,7 @@ func (c *Client) StartClient() {
 		if !ok {
 			break
 		}
-		if err := c.sendABatchBet(protocol, batch); err != nil {
+		if err := c.sendABatchBet(c.protocol, batch); err != nil {
 			if c.isClosed {
 				return
 			}
@@ -138,7 +135,7 @@ func (c *Client) StartClient() {
 		}
 	}
 
-	protocol.SendFinishMsg()
-
-	c.conn.Close()
+	c.protocol.SendFinishMsg()
+	
+	c.protocol.Close()
 }
