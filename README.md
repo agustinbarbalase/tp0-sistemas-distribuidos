@@ -32,7 +32,7 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
     - [Ejercicio N°7](#ejercicio-n7)
       - [Ejecución](#ejecución-2)
     - [Ejercicio N°8](#ejercicio-n8)
-      - [Ejecucion](#ejecucion-1)
+      - [Ejecución](#ejecución-3)
       - [Referencias](#referencias-4)
   - [Instrucciones de uso](#instrucciones-de-uso)
     - [Servidor](#servidor-1)
@@ -466,31 +466,31 @@ make docker-compose-logs
 
 ### Ejercicio N°8
 
-En este ejercicio explicaremos la transicion del modelo de la seccion hacia un modelo de concurrencia y sus diferentes mecanismo de sincronizacion. Dada las limitaciones del lenguaje Python para la implementacion de _multithreading_ ¹, fuimos hacia una solucion basada en _multiprocessing_. Si bien no es lo mas optimo, son las unicas opciones que provee el lenguaje para la generacion de un modelo concurrente.
+En este ejercicio explicaremos la transición del modelo de la sección hacia un modelo de concurrencia y sus diferentes mecanismos de sincronización. Dadas las limitaciones del lenguaje Python para la implementación de _multithreading_ ¹, optamos por una solución basada en _multiprocessing_. Si bien no es lo más óptimo, son las únicas opciones que provee el lenguaje para la generación de un modelo concurrente.
 
-En cuenta a los mecanismo de sicronizacion utilizamos principalemente dos: `Mutex` y `Barrier`, el primero referente a proteger las operaciones de escritura de los multiples clientes sobre el archivo de apuestas, protegiendo la funcion `store_bets()`. Por otro lado, el `Barrier`, que es para que una vez un cliente termina de enviar sus apuestas, este espere al resto a que termine y una vez terminada arranque el proceso de sorteo y posterior envio de ganadores a los distintos clientes
+En cuanto a los mecanismos de sincronización, utilizamos principalmente dos: `Mutex` y `Barrier`. El primero se emplea para proteger las operaciones de escritura de los múltiples clientes sobre el archivo de apuestas, resguardando la función `store_bets()`. Por otro lado, el `Barrier` permite que, una vez que un cliente termina de enviar sus apuestas, este espere al resto hasta que todos finalicen, y recién entonces se inicia el proceso de sorteo y posterior envío de ganadores a los distintos clientes.
 
-#### Ejecucion
+#### Ejecución
 
-La ejecucion es muy similar al apartado anterior. Dejamos la explicacion paso a paso. Para la ejecucion de este ejercicio, necesitamos CSVs para los clientes. Para eso corremos el siguiente comando
+La ejecución es muy similar al apartado anterior. Dejamos la explicación paso a paso. Para la ejecución de este ejercicio, necesitamos CSVs para los clientes. Para eso corremos el siguiente comando:
 
 ```bash
 unzip dataset.zip
 ```
 
-Es importante que los archivos CSV esten dentro de la carpeta `.data`, para eso recomendamos hacer un `cd` dentro de la misma y luego correr el comando anterior. Luego necesitamos generar los clientes, podemos generar tantos como queramos. Para eso corremos el siguiente comando
+Es importante que los archivos CSV estén dentro de la carpeta `.data`; para eso recomendamos hacer un `cd` dentro de la misma y luego correr el comando anterior. Luego necesitamos generar los clientes, podemos generar tantos como queramos. Para eso corremos el siguiente comando:
 
 ```bash
 ./generar-compose.sh docker-compose-dev.yaml <numero_de_clientes>
 ```
 
-Es importante recordar que el `numero_de_clientes` sea menor o igual a 5. Luego, levantamos el archivo _compose_ `docker-compose-dev.yaml`, con el siguiente comando
+Es importante recordar que el `numero_de_clientes` sea menor o igual a 5. Luego, levantamos el archivo _compose_ `docker-compose-dev.yaml` con el siguiente comando:
 
 ```bash
 make docker-compose-up
 ```
 
-Luego, podemos chequear los logs con el siguiente comando
+Luego, podemos chequear los logs con el siguiente comando:
 
 ```bash
 make docker-compose-logs
