@@ -11,6 +11,7 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self._client_protocol = None
         self._is_closed = False
 
         def handle_signal(signum, frame):
@@ -20,17 +21,15 @@ class Server:
 
     def run(self):
         """
-        Dummy Server loop
-
-        Server that accept a new connections and establishes a
-        communication with a client. After client with communucation
-        finishes, servers starts to accept new connections again
+        Runs the server loop, accepting and handling client connections.
         """
 
         while not self._is_closed:
             client_sock = self.__accept_new_connection()
-            if self._is_closed: break
-            self.__handle_client_connection(client_sock)
+            if self._is_closed: 
+                break
+            self._client_protocol = Protocol(client_sock)
+            self.__handle_client_connection()
 
     def __shutdown(self):
         """
@@ -40,11 +39,14 @@ class Server:
         """
         logging.info('action: shutdown | result: in_progress')
         self._is_closed = True
+        if self._client_protocol:
+            self._client_protocol.close()
+        self._client_protocol = None
         self._server_socket.shutdown(socket.SHUT_RDWR)
         self._server_socket.close()
         logging.info('action: shutdown | result: success')
 
-    def __handle_client_connection(self, client_sock):
+    def __handle_client_connection(self):
         """
         Read message from a specific client socket and closes the socket
 
@@ -52,22 +54,21 @@ class Server:
         client socket will also be closed
         """
         try:
-            protocol = Protocol(client_sock)
-            bet = protocol.recv_bet()
+            bet = self._client_protocol.recv_bet()
             logging.info(f"action: apuesta_recibida | result: success | dni: {bet.document} | numero: {bet.number}")
             store_bets([bet])
             logging.info(f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}")
-            protocol.send_success_msg()
+            self._client_protocol.send_success_msg()
         except UnexpectedMessage as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
-            protocol.send_failure_msg("Invalid message sent")
+            self._client_protocol.send_failure_msg("Invalid message sent")
         except ConnectionClose as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
         except Exception as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
-            protocol.send_failure_msg("Internal server error")
+            self._client_protocol.send_failure_msg("Internal server error")
         finally:
-            client_sock.close()
+            self._client_protocol.close()
 
     def __accept_new_connection(self):
         """
@@ -84,5 +85,6 @@ class Server:
             logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
             return c
         except OSError as err:
-            if not self._is_closed: raise err
+            if not self._is_closed: 
+                raise err
             return None

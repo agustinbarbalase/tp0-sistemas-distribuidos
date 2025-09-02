@@ -1,3 +1,4 @@
+from socket import SHUT_RDWR
 from .utils import Bet
 
 class UnexpectedMessage(Exception):
@@ -36,6 +37,13 @@ class Protocol:
 
     def __init__(self, socket):
         self._socket = socket
+
+    def close(self) -> None:
+        """
+        Closes the socket connection.
+        """
+        self._socket.shutdown(SHUT_RDWR)
+        self._socket.close()
 
     def recv_bet(self) -> Bet:
         """
