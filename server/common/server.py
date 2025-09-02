@@ -17,7 +17,7 @@ class Server:
         self._amount_of_clients = amount_of_clients
         self._client_protocols = {}
         self._clients = []
-        self._barrier_for_winners = multiprocessing.Barrier(amount_of_clients + 1)
+        self._barrier_for_winners = multiprocessing.Barrier(amount_of_clients)
         self._store_lock = multiprocessing.Lock()
         self._load_lock = multiprocessing.Lock()
         self._is_closed = False
