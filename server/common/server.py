@@ -8,6 +8,7 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self._client_socket = None
         self._is_closed = False
 
         def handle_signal(signum, frame):
@@ -25,9 +26,10 @@ class Server:
         """
 
         while not self._is_closed:
-            client_sock = self.__accept_new_connection()
-            if self._is_closed: break
-            self.__handle_client_connection(client_sock)
+            self._client_socket = self.__accept_new_connection()
+            if self._is_closed: 
+                break
+            self.__handle_client_connection()
 
     def __shutdown(self):
         """
@@ -37,11 +39,14 @@ class Server:
         """
         logging.info('action: shutdown | result: in_progress')
         self._is_closed = True
+        self._client_socket.shutdown(socket.SHUT_RDWR)
         self._server_socket.shutdown(socket.SHUT_RDWR)
+        self._client_socket.close()
+        self._client_socket = None
         self._server_socket.close()
         logging.info('action: shutdown | result: success')
 
-    def __handle_client_connection(self, client_sock):
+    def __handle_client_connection(self):
         """
         Read message from a specific client socket and closes the socket
 
@@ -50,15 +55,18 @@ class Server:
         """
         try:
             # TODO: Modify the receive to avoid short-reads
-            msg = client_sock.recv(1024).rstrip().decode('utf-8')
-            addr = client_sock.getpeername()
+            msg = self._client_socket.recv(1024).rstrip().decode('utf-8')
+            addr = self._client_socket.getpeername()
             logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
             # TODO: Modify the send to avoid short-writes
-            client_sock.send("{}\n".format(msg).encode('utf-8'))
+            self._client_socket.send("{}\n".format(msg).encode('utf-8'))
         except OSError as e:
-            logging.error(f"action: receive_message | result: fail | error: {e}")
+            if not self._is_closed:
+                logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
-            client_sock.close()
+            if self._client_socket:
+                self._client_socket.close()
+                self._client_socket = None
 
     def __accept_new_connection(self):
         """
@@ -75,5 +83,6 @@ class Server:
             logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
             return c
         except OSError as err:
-            if not self._is_closed: raise err
+            if not self._is_closed: 
+                raise err
             return None
