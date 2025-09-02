@@ -61,15 +61,15 @@ class Protocol:
         """
         Sends a winning bet message to the client.
         """
-        self._socket.sendall(Protocol.WINNER_HEADER)
+        self.__send_all(Protocol.WINNER_HEADER)
 
         dni_serialized = dni_winner.encode("utf-8")
 
-        self._socket.sendall(self.__htons(len(dni_serialized)))
-        self._socket.sendall(dni_serialized)
+        self.__send_all(self.__htons(len(dni_serialized)))
+        self.__send_all(dni_serialized)
 
     def finish_lottery(self) -> None:
-        self._socket.sendall(Protocol.FINISH_HEADER)
+        self.__send_all(Protocol.FINISH_HEADER)
 
     def recv_batch_bets(self) -> tuple[list[Bet], int]:
         """
@@ -127,15 +127,6 @@ class Protocol:
         bet_message: bytes = self.__recv_all(length)
 
         return self.__deserialize_bet(bet_message)
-
-    def __serialize_bet(self, bet: Bet) -> bytes:
-        """
-        Serialize a Bet object into a byte sequence.
-        """
-        bet_data = Protocol.SEPARATOR.join(
-            [str(bet.agency), str(bet.first_name), str(bet.last_name), str(bet.document), str(bet.birthdate), str(bet.number)]
-        )
-        return bet_data.encode("utf-8")
 
     def __deserialize_bet(self, bytes: bytes) -> Bet:
         """
