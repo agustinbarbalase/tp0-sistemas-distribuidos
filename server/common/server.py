@@ -70,12 +70,12 @@ class Server:
         self._server_socket.close()
         logging.info("action: shutdown | result: success")
 
-    def __send_winners_to_agency(self, client_protocol):
+    def __send_winners_to_agency(self, agency_id, client_protocol):
         """
         Sends winning bets to their respective agencies.
         """
         for bet in load_bets():
-            if has_won(bet):
+            if has_won(bet) and bet.agency == agency_id:
                 try:
                     client_protocol.send_winner(bet)
                 except Exception as e:
@@ -119,7 +119,7 @@ class Server:
                     break
 
             barrier_for_winners.wait()
-            self.__send_winners_to_agency(protocol)
+            self.__send_winners_to_agency(id, protocol)
             protocol.finish_lottery()
             exit(0)
         except BrokenBarrierError as _:
