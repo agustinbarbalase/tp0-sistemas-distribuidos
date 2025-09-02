@@ -391,35 +391,35 @@ Es importante resaltar que el documento y el número sean efectivamente valores 
 
 ### Ejercicio N°6
 
-En esta seccion, explicaremos todo lo referente al envio de multiples apuestas en un mismo mensaje, a traves de la lectura de archivos CSV. Las principales modificaciones son tanto del lado del cliente, como del lado del servidor. De lado del cliente, ahora generamos una variable de entorno que asocia donde esta el path del archivo que queremos leer. A su vez, generamos un volumen para asociar un archivo del host con el que definimos en esta variable de entorno. La variable de entorno se llama `CLI_DATA_FILEPATH`, tanto el volumen, como la variable de entorno fueron agregadas al `generador_compose.py` para facilitar la creacion del _docker compose_.
+En esta sección, explicaremos todo lo referente al envío de múltiples apuestas en un mismo mensaje, a través de la lectura de archivos CSV. Las principales modificaciones son tanto del lado del cliente como del lado del servidor. Del lado del cliente, ahora generamos una variable de entorno que asocia dónde está el path del archivo que queremos leer. A su vez, generamos un volumen para asociar un archivo del host con el que definimos en esta variable de entorno. La variable de entorno se llama `CLI_DATA_FILEPATH`, tanto el volumen como la variable de entorno fueron agregados al `generador_compose.py` para facilitar la creación del _docker compose_.
 
-Hubo cambios en el protocolo de comunacion entre el cliente y el servidor para facilitar la llegada de los _batches_, esto nos llevo a la creacion de un nuevo _code message_ referente a la llegada de estos _batches_, el cual se llama `BATCH` y ademas tiene un tamaño correspondiente a su _header_, que nos indica cuantas apuestas hay en el mensaje y de esa forma facilitar la lectura del mismo.
+Hubo cambios en el protocolo de comunicación entre el cliente y el servidor para facilitar la llegada de los _batches_, esto nos llevó a la creación de un nuevo _code message_ referente a la llegada de estos _batches_, el cual se llama `BATCH` y además tiene un tamaño correspondiente a su _header_, que nos indica cuántas apuestas hay en el mensaje y de esa forma facilita la lectura del mismo.
 
-Del lado del servidor, estas apuestas se levanta y se guardan en un archivo. Por otro lado, sabemos que existen restricciones respecto a cuantas apuestas pueden ser enviadas y cuanto es el tamaño del paquete a ser enviado. Para la cuestion referente a la cantidad de apuestas, esta es una variable de entorno configurable llamada `CLI_BATCH_MAX_AMOUNT` en el cliente, por el lado del tamaño de paquete este es una constante escrita en el cliente, seteada en 8 kB.
+Del lado del servidor, estas apuestas se levantan y se guardan en un archivo. Por otro lado, sabemos que existen restricciones respecto a cuántas apuestas pueden ser enviadas y cuánto es el tamaño del paquete a ser enviado. Para la cuestión referente a la cantidad de apuestas, esta es una variable de entorno configurable llamada `CLI_BATCH_MAX_AMOUNT` en el cliente, por el lado del tamaño de paquete este es una constante escrita en el cliente, seteada en 8 kB.
 
-Esta restriccion nos llevo a implementar otro _code message_ llamado `FINISH` para indicarle al servidor que ya hemos enviado todas las apuestas en diferentes _batches_ y evitar que el cliente se desconecte y reconecte varias veces, para diferentes _batches_. Por el otro lado, agregamos un _header_ de 2 bytes tanto al `OK` como al `FAIL` para indicar advertirle al cliente, cuantas apuestas fueron efectivamente guardadas. El `FAIL` indica al cliente que no fueron todas guardadas en forma efectiva, pero no cuales.
+Esta restricción nos llevó a implementar otro _code message_ llamado `FINISH` para indicarle al servidor que ya hemos enviado todas las apuestas en diferentes _batches_ y evitar que el cliente se desconecte y reconecte varias veces para diferentes _batches_. Por otro lado, agregamos un _header_ de 2 bytes tanto al `OK` como al `FAIL` para indicar al cliente cuántas apuestas fueron efectivamente guardadas. El `FAIL` indica al cliente que no fueron todas guardadas en forma efectiva, pero no cuáles.
 
 #### Ejecución
 
-Para la ejecucion de este ejercicio, necesitamos CSVs para los clientes. Para eso corremos el siguiente comando
+Para la ejecución de este ejercicio, necesitamos CSVs para los clientes. Para eso corremos el siguiente comando:
 
 ```bash
 unzip dataset.zip
 ```
 
-Es importante que los archivos CSV esten dentro de la carpeta `.data`, para eso recomendamos hacer un `cd` dentro de la misma y luego correr el comando anterior. Luego necesitamos generar los clientes, podemos generar tantos como queramos, pero recomendamos hacerlo con 1. Para eso corremos el siguiente comando
+Es importante que los archivos CSV estén dentro de la carpeta `.data`, para eso recomendamos hacer un `cd` dentro de la misma y luego correr el comando anterior. Luego necesitamos generar los clientes, podemos generar tantos como queramos, pero recomendamos hacerlo con 1. Para eso corremos el siguiente comando:
 
 ```bash
 ./generar-compose.sh docker-compose-dev.yaml 1
 ```
 
-Luego, levantamos el archivo _compose_ `docker-compose-dev.yaml`, con el siguiente comando
+Luego, levantamos el archivo _compose_ `docker-compose-dev.yaml` con el siguiente comando:
 
 ```bash
 make docker-compose-up
 ```
 
-Luego, podemos chequear los logs con el siguiente comando
+Luego, podemos chequear los logs con el siguiente comando:
 
 ```bash
 make docker-compose-logs
