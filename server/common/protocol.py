@@ -90,7 +90,7 @@ class Protocol:
             try:
                 bet = self.__recv_bet()
                 bets.append(bet)
-            except UnexpectedMessage as _:
+            except Exception:
                 errors += 1
         
         return bets, errors
@@ -109,6 +109,12 @@ class Protocol:
         self._socket.sendall(Protocol.FAIL_HEADER)
         self._socket.sendall(self.__htons(number_of_bets))
 
+    def close(self) -> None:
+        """
+        Closes the socket connection.
+        """
+        self._socket.close() 
+
     def __recv_bet(self) -> Bet:
         """
         Receives a bet message from the socket, deserializes it, and returns a Bet object.
@@ -125,7 +131,9 @@ class Protocol:
         """
         Serialize a Bet object into a byte sequence.
         """
-        bet_data = f"{bet.agency}{Protocol.SEPARATOR}{bet.first_name}{Protocol.SEPARATOR}{bet.last_name}{Protocol.SEPARATOR}{bet.document}{Protocol.SEPARATOR}{bet.birthdate}{Protocol.SEPARATOR}{bet.number}"
+        bet_data = Protocol.SEPARATOR.join(
+            [str(bet.agency), str(bet.first_name), str(bet.last_name), str(bet.document), str(bet.birthdate), str(bet.number)]
+        )
         return bet_data.encode("utf-8")
 
     def __deserialize_bet(self, bytes: bytes) -> Bet:

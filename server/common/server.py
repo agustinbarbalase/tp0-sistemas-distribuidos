@@ -15,8 +15,8 @@ class Server:
         self._server_socket.bind(("", port))
         self._server_socket.listen(listen_backlog)
         self._amount_of_clients = amount_of_clients
-        self._client_sockets = {}
-        self._client = []
+        self._client_protocols = {}
+        self._clients = []
         self._barrier_for_winners = multiprocessing.Barrier(amount_of_clients + 1)
         self._store_lock = multiprocessing.Lock()
         self._load_lock = multiprocessing.Lock()
@@ -40,32 +40,23 @@ class Server:
             client_sock = self.__accept_new_connection()
             if self._is_closed:
                 break
-            manager = multiprocessing.Manager()
-            if not hasattr(self, "_client_sockets_proxy"):
-                self._client_sockets_proxy = manager.dict(self._client_sockets)
             thread = multiprocessing.Process(
                 target=self.__handle_client_connection,
                 args=(
                     client_sock,
-                    self._client_sockets_proxy,
+                    self._client_protocols,
                     self._barrier_for_winners,
                     self._store_lock,
                 ),
             )
             thread.start()
-            self._client.append(thread)
-            if len(self._client) == self._amount_of_clients:
-                self._barrier_for_winners.wait()
-                for t in self._client:
-                    t.join()
-                self.__announce_winners()
+            self._clients.append(thread)
 
-        for client_sock in self._client_sockets_proxy.values():
+        for protocol in self._client_protocols.values():
             self._barrier_for_winners.abort()
             protocol = Protocol(client_sock)
             protocol.finish_lottery()
-            client_sock.close()
-            self._client_sockets_proxy.close()
+            protocol.close()
 
     def __shutdown(self):
         """
@@ -79,37 +70,21 @@ class Server:
         self._server_socket.close()
         logging.info("action: shutdown | result: success")
 
-    def __announce_winners(self):
+    def __send_winners_to_agency(self, client_protocol):
         """
-        Announce the winners
-
-        Function used to announce the winners of the game
+        Sends winning bets to their respective agencies.
         """
-
         for bet in load_bets():
             if has_won(bet):
                 try:
-                    client_sock = self._client_sockets_proxy[bet.agency]
-                    protocol = Protocol(client_sock)
-                    protocol.send_winner(bet)
+                    client_protocol.send_winner(bet)
                 except Exception as e:
-                    logging.error(
-                        f"action: receifsadfasfdve_message | result: fail | error: {e}"
-                    )
-
-        for client_socket in self._client_sockets_proxy.values():
-            try:
-                protocol = Protocol(client_socket)
-                protocol.finish_lottery()
-            except Exception as e:
-                logging.error(f"action: receive_message | result: fail | error: {e}")
-            finally:
-                client_socket.close()
+                    logging.error(f"action: receive_message | result: fail | error: {e}")
 
     def __handle_client_connection(
         self,
-        client_sock,
-        client_sockets,
+        socket,
+        client_protocols,
         barrier_for_winners,
         store_lock,
     ):
@@ -120,9 +95,9 @@ class Server:
         client socket will also be closed
         """
         try:
-            protocol = Protocol(client_sock)
+            protocol = Protocol(socket)
             id = protocol.wait_identification()
-            client_sockets[id] = client_sock
+            client_protocols[id] = protocol
 
             while True:
                 bets, errors = protocol.recv_batch_bets()
@@ -144,6 +119,8 @@ class Server:
                     break
 
             barrier_for_winners.wait()
+            self.__send_winners_to_agency(protocol)
+            protocol.finish_lottery()
             exit(0)
         except BrokenBarrierError as _:
             exit(0)
