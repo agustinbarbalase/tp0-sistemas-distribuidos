@@ -77,7 +77,7 @@ class Server:
         for bet in load_bets():
             if has_won(bet) and bet.agency == agency_id:
                 try:
-                    client_protocol.send_winner(bet)
+                    client_protocol.send_winner(bet.document)
                 except Exception as e:
                     logging.error(f"action: receive_message | result: fail | error: {e}")
 

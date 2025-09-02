@@ -21,6 +21,7 @@ const (
 	BATCH_HEADER = 0x04 // Header indicating a batch of bets
 	FINISH_HEADER = 0x05 // Header indicating the end of transmission
 	ID_HEADER = 0x06 // Header indicating identification message
+	WINNER_HEADER = 0x07 // Header indicating a winner message
 )
 
 // MAX_SIZE_PACKAGE_IN_BYTES defines the maximum allowed size (in bytes) for a package.
@@ -192,34 +193,29 @@ func (p *Protocol) SendIdentification(agencyID string) error {
 }
 
 	
-func (p *Protocol) RecvWinner() (*Bet, error) {
+func (p *Protocol) RecvWinner() (string, error) {
 	header := make([]byte, SIZE_HEADER_BYTES)
 	if err := p.readAll(header, SIZE_HEADER_BYTES); err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if header[0] == FINISH_HEADER {
-		return nil, nil
-	} else if header[0] != BET_HEADER {
-		return nil, fmt.Errorf("invalid header")
+		return "", nil
+	} else if header[0] != WINNER_HEADER {
+		return "", fmt.Errorf("invalid header")
 	}
 
 	lengthBytes := make([]byte, SIZE_LENGTH_BYTES)
 	if err := p.readAll(lengthBytes, SIZE_LENGTH_BYTES); err != nil {
-		return nil, err
+		return "", err
 	}
 
 	length := ntohs(lengthBytes)
 
 	winnerData := make([]byte, length)
 	if err := p.readAll(winnerData, int(length)); err != nil {
-		return nil, err
+		return "", err
 	}
 
-	winner := &Bet{}
-	if err := winner.Deserialize(winnerData); err != nil {
-		return nil, err
-	}
-
-	return winner, nil
+	return string(winnerData), nil
 }
