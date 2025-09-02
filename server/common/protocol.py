@@ -63,15 +63,15 @@ class Protocol:
         """
         Send a success message to the client.
         """
-        self._socket.sendall(Protocol.OK_HEADER)
+        self.__send_all(Protocol.OK_HEADER)
 
     def send_failure_msg(self, err_msg: str) -> None:
         """
         Send a failure message to the client.
         """
-        self._socket.sendall(Protocol.FAIL_HEADER)
-        self._socket.sendall(self.__htons(len(err_msg)))
-        self._socket.sendall(err_msg.encode("utf-8"))
+        self.__send_all(Protocol.FAIL_HEADER)
+        self.__send_all(self.__htons(len(err_msg)))
+        self.__send_all(err_msg.encode("utf-8"))
 
     def __deserialize_bet(self, bytes: bytes) -> Bet:
         """
@@ -123,3 +123,16 @@ class Protocol:
             data += chunk
 
         return data
+
+    def __send_all(self, data: bytes) -> None:
+        """
+        Send all bytes in `data` to the socket.
+
+        Keeps sending until all data is sent or an error occurs.
+        """
+        total_sent = 0
+        while total_sent < len(data):
+            sent = self._socket.send(data[total_sent:])
+            if sent == 0:
+                raise ConnectionClose("Socket closed")
+            total_sent += sent

@@ -293,13 +293,13 @@ def send_all(msg, length):
 
 <p align="center"><strong>Pseudocódigo: <i>short-read</i> y <i>short-write</i></strong></p>
 
-Las librerías de _sockets_ devuelven cuántos bytes se leyeron/escribieron, entonces a partir de eso podremos saber cuántos bytes faltan por enviar/recibir, por eso estamos en un loop que nos asegura que hayamos leído todo el mensaje que esperamos recibir/enviar. En el caso de Python, nos devuelven lo que recibieron, sino que devuelven el mensaje en sí, sabiendo el tamaño del mensaje parcial recibido (_chunk_) podremos saber cuánto leímos. ² Particularmente en Python, existe una función implementada por el _socket_ llamada `sendall()` que nos asegura enviar todos los bytes, por lo que el problema del _short write_ en Python está resuelto. ³
+Las librerías de _sockets_ devuelven cuántos bytes se leyeron/escribieron, entonces a partir de eso podremos saber cuántos bytes faltan por enviar/recibir, por eso estamos en un loop que nos asegura que hayamos leído todo el mensaje que esperamos recibir/enviar. En el caso de Python, nos devuelven lo que recibieron, sino que devuelven el mensaje en sí, sabiendo el tamaño del mensaje parcial recibido (_chunk_) podremos saber cuánto leímos. ²
 
 ##### Endianness
 
 Respecto al problema del envío o recepción de mensajes a través de la red, tiene que ver con cómo implementan los números las computadoras. Algunas usan el formato _big endian_, es decir el byte más significativo primero, o la opción de _little endian_, o sea el byte menos significativo primero. Esa diferencia nos trae la obligación de asegurarnos el correcto envío y recepción de los bytes a través de la red. Es por eso que existe la necesidad de implementar una función que transforme del _endianness_ de la computadora (_host_) a una a través de la red (_network_), estas funciones se llaman _host-to-network_ (`hton`), lo mismo aplica al revés, es decir _network-to-host_ (`ntoh`).
 
-Para el caso de este protocolo, lo necesitamos para bytes relacionados con los tamaños del `nombre` y el `apellido`, la convención es utilizar _big endian_ para la _network_. ⁴ Así que las funciones _hton_ y _ntoh_ deberán utilizar una transformación a _big endian_ o decir que determinado conjunto de bytes es _big endian_. Como los tamaños son de 2 bytes, a estas funciones particularmente se las llama `htons()` y `ntohs()`, la `s` es por `short` y son números de 16 bits (2 bytes) sin signo. Para Python ya existe una forma nativa de transformar las cosas en bytes según el _endianness_, ⁵ para el caso de Go usamos una librería de la biblioteca estándar llamada `encoding/binary`. ⁶
+Para el caso de este protocolo, lo necesitamos para bytes relacionados con los tamaños del `nombre` y el `apellido`, la convención es utilizar _big endian_ para la _network_. ³ Así que las funciones _hton_ y _ntoh_ deberán utilizar una transformación a _big endian_ o decir que determinado conjunto de bytes es _big endian_. Como los tamaños son de 2 bytes, a estas funciones particularmente se las llama `htons()` y `ntohs()`, la `s` es por `short` y son números de 16 bits (2 bytes) sin signo. Para Python ya existe una forma nativa de transformar las cosas en bytes según el _endianness_, ⁴ para el caso de Go usamos una librería de la biblioteca estándar llamada `encoding/binary`. ⁵
 
 #### Separación de responsabilidades
 
@@ -379,10 +379,9 @@ Es importante resaltar que el documento y el número sean efectivamente valores 
 
 1. File Descriptors – CS 61 2018. (n.d.). Retrieved August 24, 2025, from [https://cs61.seas.harvard.edu/site/2018/FileDescriptors/](https://cs61.seas.harvard.edu/site/2018/FileDescriptors/)
 2. recv — Low-level networking interface. (n.d.-c). Python Documentation. Retrieved August 24, 2025, from [https://docs.python.org/3/library/socket.html#socket.socket.recv](https://docs.python.org/3/library/socket.html#socket.socket.recv)
-3. sendall — Low-level networking interface. (n.d.-b). Python Documentation. Retrieved August 24, 2025, from [https://docs.python.org/3/library/socket.html#socket.socket.sendall](https://docs.python.org/3/library/socket.html#socket.socket.sendall)
-4. htons(3) - Linux man page. (n.d.). Retrieved August 24, 2025, from [https://linux.die.net/man/3/htons](https://linux.die.net/man/3/htons)
-5. Built-in Types. (n.d.). Python Documentation. Retrieved August 24, 2025, from [https://docs.python.org/3/library/stdtypes.html](https://docs.python.org/3/library/stdtypes.html)
-6. binary package - encoding/binary - Go Packages. (n.d.). Retrieved August 24, 2025, from [https://pkg.go.dev/encoding/binary](https://pkg.go.dev/encoding/binary)
+3. htons(3) - Linux man page. (n.d.). Retrieved August 24, 2025, from [https://linux.die.net/man/3/htons](https://linux.die.net/man/3/htons)
+4. Built-in Types. (n.d.). Python Documentation. Retrieved August 24, 2025, from [https://docs.python.org/3/library/stdtypes.html](https://docs.python.org/3/library/stdtypes.html)
+5. binary package - encoding/binary - Go Packages. (n.d.). Retrieved August 24, 2025, from [https://pkg.go.dev/encoding/binary](https://pkg.go.dev/encoding/binary)
 
 
 ## Instrucciones de uso
