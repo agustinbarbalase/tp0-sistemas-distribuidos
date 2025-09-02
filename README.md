@@ -30,7 +30,7 @@ En el presente repositorio se provee un esqueleto básico de cliente/servidor, e
     - [Ejercicio N°6](#ejercicio-n6)
       - [Ejecución](#ejecución-1)
     - [Ejercicio N°7](#ejercicio-n7)
-      - [Ejecucion](#ejecucion-1)
+      - [Ejecución](#ejecución-2)
   - [Instrucciones de uso](#instrucciones-de-uso)
     - [Servidor](#servidor-1)
     - [Cliente](#cliente-1)
@@ -427,35 +427,35 @@ make docker-compose-logs
 
 ### Ejercicio N°7
 
-En este ejercicio nos enfrentamos al desafio de añadir la funcionalidad de devolver los ganadores del sorteo, lo que llevo ademas a la aceptacion multiples clientes y sincronizarlos para que reciban sus respectivos ganadores, eso nos llevo a desarrollar una serie de mensajes que permitan esa sicronizacion. El primer paso fue definir una variable de entorno configurable con la cantidad de clientes llamada `AMOUNT_OF_CLIENTS` del lado del servidor y que se encuentra en el archivo `generador_compose.py`. Este nos permite saber cuantos clientes debemos manejar. En funcion de la cantidad de clientes que pidamos al script este seteara dicha variable.
+En este ejercicio nos enfrentamos al desafío de añadir la funcionalidad de devolver los ganadores del sorteo, lo que llevó además a la aceptación de múltiples clientes y a sincronizarlos para que reciban sus respectivos ganadores. Esto nos llevó a desarrollar una serie de mensajes que permitan esa sincronización. El primer paso fue definir una variable de entorno configurable con la cantidad de clientes llamada `AMOUNT_OF_CLIENTS` del lado del servidor y que se encuentra en el archivo `generador_compose.py`. Esta nos permite saber cuántos clientes debemos manejar. En función de la cantidad de clientes que pidamos al script, este seteará dicha variable.
 
-Para implementar esta funcionalidad, nuevamente mandamos todos los _batches_ de apuestas que las agencias, luego que todos los clientes fueron atendidos, es decir mandaron sus apuestas, el servidor se prepara para leer el archivo de apuestas y empezar a enviar los ganadores a las respectivas agencias. En primer lugar, debemos identificar a cada agencia, para eso usamos un nuevo mensaje del tipo `ID_HEADER` que incluye un 2 bytes correspondientes al ID de la agencia, esto permitira asociar un diccionario de IDs con los sockets de cada cliente.
+Para implementar esta funcionalidad, nuevamente mandamos todos los _batches_ de apuestas que las agencias envían. Luego, cuando todos los clientes fueron atendidos, es decir, mandaron sus apuestas, el servidor se prepara para leer el archivo de apuestas y empezar a enviar los ganadores a las respectivas agencias. En primer lugar, debemos identificar a cada agencia; para eso usamos un nuevo mensaje del tipo `ID_HEADER` que incluye 2 bytes correspondientes al ID de la agencia. Esto permitirá asociar un diccionario de IDs con los sockets de cada cliente.
 
-Una vez hecha la identificacion, procedemos a recibir los _batches_ de todos los clientes, cuando un cliente termine permanecera a la espera de los ganadores, pero para eso debera esperar que los demas clientes terminen. Una vez que todos terminan ahi procedemos a leer el archivo e identificar a los ganadores y se lo mandamos a su socket correspondiente en funcion del ID de agencia que tiene la apuesta, evitando hacer un _broadcast_ de todos los ganadores a todos los clientes.
+Una vez hecha la identificación, procedemos a recibir los _batches_ de todos los clientes. Cuando un cliente termina, permanece a la espera de los ganadores, pero para eso deberá esperar que los demás clientes terminen. Una vez que todos terminan, ahí procedemos a leer el archivo e identificar a los ganadores y se los mandamos a su socket correspondiente en función del ID de agencia que tiene la apuesta, evitando hacer un _broadcast_ de todos los ganadores a todos los clientes.
 
-Finalizada la lectura, enviamos un mensaje del tipo `FINISH` que indica al cliente que la loteria ha terminado, el cliente guarda la lista de ganadores y sabe la cantidad de ganadores sabiendo el tamaño de la lista e imprime la cantidad.
+Finalizada la lectura, enviamos un mensaje del tipo `FINISH` que indica al cliente que la lotería ha terminado. El cliente guarda la lista de ganadores y sabe la cantidad de ganadores según el tamaño de la lista e imprime la cantidad.
 
-#### Ejecucion
+#### Ejecución
 
-La ejecucion es muy similar al apartado anterior. Dejamos la explicacion paso a paso. Para la ejecucion de este ejercicio, necesitamos CSVs para los clientes. Para eso corremos el siguiente comando
+La ejecución es muy similar al apartado anterior. Dejamos la explicación paso a paso. Para la ejecución de este ejercicio, necesitamos CSVs para los clientes. Para eso corremos el siguiente comando:
 
 ```bash
 unzip dataset.zip
 ```
 
-Es importante que los archivos CSV esten dentro de la carpeta `.data`, para eso recomendamos hacer un `cd` dentro de la misma y luego correr el comando anterior. Luego necesitamos generar los clientes, podemos generar tantos como queramos. Para eso corremos el siguiente comando
+Es importante que los archivos CSV estén dentro de la carpeta `.data`, para eso recomendamos hacer un `cd` dentro de la misma y luego correr el comando anterior. Luego necesitamos generar los clientes, podemos generar tantos como queramos. Para eso corremos el siguiente comando:
 
 ```bash
-./generar-compose.sh docker-compose-dev.yaml 1
+./generar-compose.sh docker-compose-dev.yaml <numero_de_clientes>
 ```
 
-Luego, levantamos el archivo _compose_ `docker-compose-dev.yaml`, con el siguiente comando
+Es importante recordar que el `numero_de_clientes` sea menor o igual a 5. Luego, levantamos el archivo compose `docker-compose-dev.yaml` con el siguiente comando:
 
 ```bash
 make docker-compose-up
 ```
 
-Luego, podemos chequear los logs con el siguiente comando
+Luego, podemos chequear los logs con el siguiente comando:
 
 ```bash
 make docker-compose-logs
