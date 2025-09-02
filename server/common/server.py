@@ -31,6 +31,15 @@ class Server:
                 break
             self.__handle_client_connection()
 
+    def __shutdown_client(self):
+        """
+        Shutdown the client socket
+        """
+        if self._client_socket:
+            self._client_socket.shutdown(socket.SHUT_RDWR)
+            self._client_socket.close()
+        self._client_socket = None
+
     def __shutdown(self):
         """
         Gracefull shutdown
@@ -39,10 +48,7 @@ class Server:
         """
         logging.info('action: shutdown | result: in_progress')
         self._is_closed = True
-        self._client_socket.shutdown(socket.SHUT_RDWR)
-        self._server_socket.shutdown(socket.SHUT_RDWR)
-        self._client_socket.close()
-        self._client_socket = None
+        self.__shutdown_client()
         self._server_socket.close()
         logging.info('action: shutdown | result: success')
 
@@ -64,9 +70,7 @@ class Server:
             if not self._is_closed:
                 logging.error(f"action: receive_message | result: fail | error: {e}")
         finally:
-            if self._client_socket:
-                self._client_socket.close()
-                self._client_socket = None
+            self.__shutdown_client()
 
     def __accept_new_connection(self):
         """
