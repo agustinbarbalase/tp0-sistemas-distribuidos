@@ -42,8 +42,10 @@ class Protocol:
         """
         Closes the socket connection.
         """
-        self._socket.shutdown(SHUT_RDWR)
-        self._socket.close()
+        if self._socket:
+            self._socket.shutdown(SHUT_RDWR)
+            self._socket.close()
+        self._socket = None
 
     def recv_bet(self) -> Bet:
         """
