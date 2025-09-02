@@ -142,8 +142,8 @@ func (c *Client) sendAllBatches(p *Protocol) {
 }
 
 // recvWinners receives winner bets from the provided Protocol.
-func (c *Client) recvWinners(p *Protocol) []*Bet {
-	winners := make([]*Bet, 0)
+func (c *Client) recvWinners(p *Protocol) []string {
+	winners := make([]string, 0)
 
 	for {
 		winner, err := p.RecvWinner()
@@ -151,7 +151,7 @@ func (c *Client) recvWinners(p *Protocol) []*Bet {
 			log.Errorf("failed to receive winner: %v", err)
 			break
 		}
-		if winner == nil {
+		if winner == "" {
 			break
 		}
 		winners = append(winners, winner)

@@ -62,7 +62,7 @@ class Server:
             if has_won(bet):
                 try:
                     client_protocol = self._client_protocols[bet.agency]
-                    client_protocol.send_winner(bet)
+                    client_protocol.send_winner(bet.document)
                 except Exception as e:
                     logging.error(f"action: receive_message | result: fail | error: {e}")
 

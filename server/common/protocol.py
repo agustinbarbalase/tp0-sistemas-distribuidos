@@ -32,6 +32,7 @@ class Protocol:
     BATCH_HEADER: bytes = b"\x04"  # Header indicating a batch of bets
     FINISH_HEADER: bytes = b"\x05"  # Header indicating the end of transmission
     ID_HEADER: bytes  = b"\x06"  # Header indicating an identification message
+    WINNER_HEADER: bytes = b"\x07"  # Header indicating a winner message
 
     # --- Constants for formatting ---
     SEPARATOR: str          = ";"  # Message separator
@@ -56,16 +57,16 @@ class Protocol:
         if header != Protocol.FINISH_HEADER:
             raise UnexpectedMessage("Invalid header")
 
-    def send_winner(self, bet: Bet) -> None:
+    def send_winner(self, dni_winner: str) -> None:
         """
         Sends a winning bet message to the client.
         """
-        self._socket.sendall(Protocol.BET_HEADER)
+        self._socket.sendall(Protocol.WINNER_HEADER)
 
-        bet_serialized = self.__serialize_bet(bet)
+        dni_serialized = dni_winner.encode("utf-8")
 
-        self._socket.sendall(self.__htons(len(bet_serialized)))
-        self._socket.sendall(bet_serialized)
+        self._socket.sendall(self.__htons(len(dni_serialized)))
+        self._socket.sendall(dni_serialized)
 
     def finish_lottery(self) -> None:
         self._socket.sendall(Protocol.FINISH_HEADER)
