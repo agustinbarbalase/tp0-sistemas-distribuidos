@@ -2,11 +2,12 @@ package common
 
 import (
 	"net"
-	"time"
 	"os"
 	"os/signal"
-	"syscall"
 	"strconv"
+	"syscall"
+	"time"
+
 	"github.com/op/go-logging"
 )
 
@@ -22,10 +23,10 @@ type ClientConfig struct {
 
 // Client Entity that encapsulates how
 type Client struct {
-	config    ClientConfig
-	conn      net.Conn
+	config        ClientConfig
+	protocol      *Protocol
 	signalChannel chan os.Signal
-	isClosed  bool
+	isClosed      bool
 }
 
 const dateFormat = "2006-01-02"
@@ -55,7 +56,7 @@ func (c *Client) createClientSocket() error {
 			err,
 		)
 	}
-	c.conn = conn
+	c.protocol = NewProtocol(conn)
 	return nil
 }
 
@@ -63,8 +64,8 @@ func (c *Client) createClientSocket() error {
 func (c *Client) shutdown() {
 	log.Infof("action: shutdown | result: in_progress | client_id: %v", c.config.ID)
 	c.isClosed = true
-	if c.conn != nil {
-		c.conn.Close()
+	if c.protocol != nil {
+		c.protocol.Close()
 	}
 	log.Infof("action: shutdown | result: success | client_id: %v", c.config.ID)
 }
@@ -121,31 +122,30 @@ func (c *Client) StartClient() {
 		return
 	}
 	
-	protocol := NewProtocol(c.conn)
 	bet, err := c.createBet()
 	if err != nil {
 		if !c.isClosed {
-			c.conn.Close()
+			c.protocol.Close()
 		}
 		return
 	}	
 
-	if err := protocol.SendBet(c.config.ID, bet); err != nil {
+	if err := c.protocol.SendBet(c.config.ID, bet); err != nil {
 		if !c.isClosed {
 			log.Error("action: apuesta_enviada | result: fail | dni: %v | numero: %v | error: %v", bet.Document, bet.Number, err)
-			c.conn.Close()
+			c.protocol.Close()
 		}
 		return
 	}
 	
-	if err := protocol.RecvOKMsg(); err != nil {
+	if err := c.protocol.RecvOKMsg(); err != nil {
 		if !c.isClosed {
 			log.Error("action: apuesta_enviada | result: fail | dni: %v | numero: %v | error: %v", bet.Document, bet.Number, err)
-			c.conn.Close()
+			c.protocol.Close()
 		}
 		return
 	}
 
 	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", bet.Document, bet.Number)
-	c.conn.Close()
+	c.protocol.Close()
 }
