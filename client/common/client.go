@@ -84,21 +84,25 @@ func (c *Client) StartClientLoop() {
 			return
 		}
 
+		if c.conn == nil {
+			return
+		}
 		if _, err := fmt.Fprintf(c.conn, "[CLIENT %v] Message N°%v\n", c.config.ID, msgID); err != nil {
-			if c.isClosed { return }
-			log.Errorf("action: send_message | result: fail | client_id: %v | error: %v", c.config.ID, err)
+			if !c.isClosed {
+				log.Errorf("action: send_message | result: fail | client_id: %v | error: %v", c.config.ID, err)
+			}
 			c.conn.Close()
 			return
 		}
 
 		resp, err := bufio.NewReader(c.conn).ReadString('\n')
-		c.conn.Close()
 		if err != nil {
 			if c.isClosed { return }
 			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v", c.config.ID, err)
 			return
 		}
-
+		
+		c.conn.Close()
 		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v", c.config.ID, resp)
 		time.Sleep(c.config.LoopPeriod)
 	}
