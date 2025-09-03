@@ -432,7 +432,7 @@ Para implementar esta funcionalidad, nuevamente mandamos todos los _batches_ de 
 
 Una vez hecha la identificación, procedemos a recibir los _batches_ de todos los clientes. Cuando un cliente termina, permanece a la espera de los ganadores, pero para eso deberá esperar que los demás clientes terminen. Una vez que todos terminan, ahí procedemos a leer el archivo e identificar a los ganadores y se los mandamos a su socket correspondiente en función del ID de agencia que tiene la apuesta, evitando hacer un _broadcast_ de todos los ganadores a todos los clientes.
 
-La lista de ganadores se manda, primero indicando el mensaje de tipo `WINNER`, luego indicando el tamaño de la lista a traves de un número de 2 bytes y finalmente se envian todos los DNIs ganadores con 2 bytes que indican el tamaño y el DNI en si. El cliente guarda la lista de ganadores y sabe la cantidad de ganadores según el tamaño de la lista e imprime la cantidad.
+La lista de ganadores se envía, primero indicando el mensaje de tipo `WINNER`, luego indicando el tamaño de la lista a través de un número de 2 bytes y finalmente se envían todos los DNIs ganadores con 4 bytes de tamaño cada uno. El cliente guarda la lista de ganadores y sabe la cantidad de ganadores según el tamaño de la lista, e imprime la cantidad.
 
 #### Ejecución
 
