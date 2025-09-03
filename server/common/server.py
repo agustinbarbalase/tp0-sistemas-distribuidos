@@ -11,6 +11,7 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self._client_protocol = None
         self._is_closed = False
 
         def handle_signal(signum, frame):
@@ -31,7 +32,8 @@ class Server:
             client_sock = self.__accept_new_connection()
             if self._is_closed: 
                 break
-            self.__handle_client_connection(client_sock)
+            self._client_protocol = Protocol(client_sock)
+            self.__handle_client_connection()
 
     def __shutdown(self):
         """
@@ -45,7 +47,7 @@ class Server:
         self._server_socket.close()
         logging.info('action: shutdown | result: success')
 
-    def __handle_client_connection(self, client_sock):
+    def __handle_client_connection(self):
         """
         Read message from a specific client socket and closes the socket
 
@@ -54,27 +56,26 @@ class Server:
         """
         try:
             while True:
-                protocol = Protocol(client_sock)
-                bets, errors = protocol.recv_batch_bets()
+                bets, errors = self._client_protocol.recv_batch_bets()
                 store_bets(bets)
                 if errors > 0:
                     logging.error(f"action: apuesta_recibida | result: fail | cantidad: {len(bets)}")
-                    protocol.send_failure_msg(len(bets))
+                    self._client_protocol.send_failure_msg(len(bets))
                 elif len(bets) > 0:
                     logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(bets)}")
-                    protocol.send_success_msg(len(bets))
+                    self._client_protocol.send_success_msg(len(bets))
                 else:
                     break
         except UnexpectedMessage as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
-            protocol.send_failure_msg("Invalid message sent")
+            self._client_protocol.send_failure_msg("Invalid message sent")
         except ConnectionClose as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
         except Exception as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
-            protocol.send_failure_msg("Internal server error")
+            self._client_protocol.send_failure_msg("Internal server error")
         finally:
-            client_sock.close()
+            self._client_protocol.close()
 
     def __accept_new_connection(self):
         """

@@ -39,6 +39,14 @@ class Protocol:
     def __init__(self, socket):
         self._socket = socket
 
+    def close(self) -> None:
+        """
+        Closes the socket connection.
+        """
+        if self._socket:
+            self._socket.close()
+        self._socket = None
+
     def recv_batch_bets(self) -> tuple[list[Bet], int]:
         """
         Receives a batch of bets from the connection.
