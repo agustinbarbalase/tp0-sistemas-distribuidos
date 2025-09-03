@@ -72,6 +72,9 @@ func (p *Protocol) Close() {
 func (p *Protocol) readAll(msg []byte, totalLength int) error {
 	readed := 0
 	for readed < totalLength {
+		if p.Conn == nil {
+			return fmt.Errorf("connection closed")
+		}
 		n, err := p.Conn.Read(msg[readed:])
 		if err != nil {
 			return err
@@ -86,6 +89,9 @@ func (p *Protocol) readAll(msg []byte, totalLength int) error {
 func (p *Protocol) writeAll(msg []byte, totalLength int) error {
 	writed := 0
 	for writed < totalLength {
+		if p.Conn == nil {
+			return fmt.Errorf("connection closed")
+		}
 		n, err := p.Conn.Write(msg[writed:])
 		if err != nil {
 			return err

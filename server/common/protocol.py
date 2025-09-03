@@ -75,9 +75,6 @@ class Protocol:
         for winner in winners:
             self.__send_all(self.__htonl(int(winner)))
 
-    def finish_lottery(self) -> None:
-        self.__send_all(Protocol.FINISH_HEADER)
-
     def recv_batch_bets(self) -> tuple[list[Bet], int]:
         """
         Receives a batch of bets from the connection.

@@ -37,10 +37,8 @@ class Server:
             if len(self._client_protocols) == self._amount_of_clients:
                 self.__announce_winners()
 
-        for client_socket in self._client_protocols.values():
-            protocol = Protocol(client_socket)
-            protocol.finish_lottery()
-            client_socket.close()
+        for client_protocol in self._client_protocols.values():
+            client_protocol.close()
 
     def __shutdown(self):
         """
@@ -50,7 +48,8 @@ class Server:
         """
         logging.info('action: shutdown | result: in_progress')
         self._is_closed = True
-        self._client_protocol.close()
+        for client_protocol in self._client_protocols.values():
+            client_protocol.close()
         self._server_socket.close()
         logging.info('action: shutdown | result: success')
 
@@ -129,8 +128,6 @@ class Server:
             logging.error(f"action: receive_message | result: fail | error: {e}")
         except Exception as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
-        finally:
-            self._client_protocol.close()
 
     def __accept_new_connection(self):
         """
