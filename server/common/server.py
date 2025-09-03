@@ -31,7 +31,7 @@ class Server:
 
         while not self._is_closed:
             client_sock = self.__accept_new_connection()
-            if self._is_closed: 
+            if self._is_closed and client_sock is None:
                 break
             self.__handle_client_connection(client_sock)
             if len(self._client_protocols) == self._amount_of_clients:
@@ -50,7 +50,7 @@ class Server:
         """
         logging.info('action: shutdown | result: in_progress')
         self._is_closed = True
-        self._server_socket.shutdown(socket.SHUT_RDWR)
+        self._client_protocol.close()
         self._server_socket.close()
         logging.info('action: shutdown | result: success')
 
@@ -125,12 +125,12 @@ class Server:
             self.__recv_bets_from_agencies(protocol)
         except UnexpectedMessage as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
-            protocol.send_failure_msg("Invalid message sent")
         except ConnectionClose as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
         except Exception as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
-            protocol.send_failure_msg("Internal server error")
+        finally:
+            self._client_protocol.close()
 
     def __accept_new_connection(self):
         """
