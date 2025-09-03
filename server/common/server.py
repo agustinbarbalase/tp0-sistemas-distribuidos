@@ -54,28 +54,36 @@ class Server:
         self._server_socket.close()
         logging.info('action: shutdown | result: success')
 
-    def __send_winners_to_agencies(self):
+    def __get_winners(self):
+        """
+        Get winners by agency
+
+        Function used to get the winners of the game by agency
+        """
+        winners_by_agency = {}
+        for bet in load_bets():
+            if has_won(bet):
+                winners_by_agency.setdefault(bet.agency, []).append(bet.document)
+        return winners_by_agency
+
+    def __send_winners_to_agencies(self, winners_by_agency: dict[int, list[str]]):
         """
         Sends winning bets to their respective agencies.
         """
-        for bet in load_bets():
-            if has_won(bet):
+        for agency_id, client_protocol in self._client_protocols.items():
+            winners = winners_by_agency.get(agency_id, [])
+            if winners:
                 try:
-                    client_protocol = self._client_protocols[bet.agency]
-                    client_protocol.send_winner(bet.document)
+                    client_protocol.send_winners(winners)
                 except Exception as e:
                     logging.error(f"action: receive_message | result: fail | error: {e}")
 
     def __finish_lottery(self):
         """
-        Notifies all connected clients that the lottery has finished.
+        Close all sockets of the clients
         """
         for client_protocol in self._client_protocols.values():
-            try:
-                client_protocol.finish_lottery()
-                client_protocol.close()
-            except Exception as e:
-                logging.error(f"action: receive_message | result: fail | error: {e}")
+            client_protocol.close()
 
     def __announce_winners(self):
         """
@@ -83,7 +91,8 @@ class Server:
 
         Function used to announce the winners of the game
         """
-        self.__send_winners_to_agencies()
+        winners_by_agency = self.__get_winners()
+        self.__send_winners_to_agencies(winners_by_agency)
         self.__finish_lottery()
 
     def __recv_bets_from_agencies(self, protocol):

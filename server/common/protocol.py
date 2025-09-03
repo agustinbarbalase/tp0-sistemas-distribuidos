@@ -57,16 +57,15 @@ class Protocol:
         if header != Protocol.FINISH_HEADER:
             raise UnexpectedMessage("Invalid header")
 
-    def send_winner(self, dni_winner: str) -> None:
+    def send_winners(self, winners: list[str]) -> None:
         """
         Sends a winning bet message to the client.
         """
         self.__send_all(Protocol.WINNER_HEADER)
+        self.__send_all(self.__htons(len(winners)))
 
-        dni_serialized = dni_winner.encode("utf-8")
-
-        self.__send_all(self.__htons(len(dni_serialized)))
-        self.__send_all(dni_serialized)
+        for winner in winners:
+            self.__send_all(self.__htonl(int(winner)))
 
     def finish_lottery(self) -> None:
         self.__send_all(Protocol.FINISH_HEADER)
@@ -160,6 +159,17 @@ class Protocol:
         The returned byte sequence will be exactly 2 bytes long.
         """
         return value.to_bytes(2, "big", signed=False)
+
+    def __htonl(self, value: int) -> bytes:
+        """
+        Convert an integer to a byte sequence using network byte order.
+
+        This is equivalent to the C function `htonl`, which converts a
+        long integer from host byte order to network byte order.
+
+        The returned byte sequence will be exactly 4 bytes long.
+        """
+        return value.to_bytes(4, "big", signed=False)
 
     def __recv_all(self, length: int) -> bytes:
         """
