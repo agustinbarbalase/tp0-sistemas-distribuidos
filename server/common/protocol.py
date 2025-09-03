@@ -41,6 +41,14 @@ class Protocol:
     def __init__(self, socket):
         self._socket = socket
 
+    def close(self) -> None:
+        """
+        Closes the socket connection.
+        """
+        if self._socket:
+            self._socket.close()
+        self._socket = None
+
     def wait_identification(self) -> int:
         """
         Waits for an identification message from the client.
@@ -108,12 +116,6 @@ class Protocol:
         """
         self.__send_all(Protocol.FAIL_HEADER)
         self.__send_all(self.__htons(number_of_bets))
-
-    def close(self) -> None:
-        """
-        Closes the socket connection.
-        """
-        self._socket.close() 
 
     def __recv_bet(self) -> Bet:
         """
