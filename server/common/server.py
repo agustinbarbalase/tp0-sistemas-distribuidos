@@ -1,8 +1,8 @@
 import socket
 import logging
 import signal
-import multiprocessing
 
+from multiprocessing import Barrier, Process, Lock
 from threading import BrokenBarrierError
 from .protocol import Protocol, UnexpectedMessage, ConnectionClose
 from .utils import store_bets, load_bets, has_won
@@ -17,9 +17,8 @@ class Server:
         self._amount_of_clients = amount_of_clients
         self._client_protocols = {}
         self._clients = []
-        self._barrier_for_winners = multiprocessing.Barrier(amount_of_clients)
-        self._store_lock = multiprocessing.Lock()
-        self._load_lock = multiprocessing.Lock()
+        self._barrier_for_winners = Barrier(amount_of_clients)
+        self._store_lock = Lock()
         self._is_closed = False
 
         def handle_signal(signum, frame):
@@ -40,7 +39,7 @@ class Server:
             client_sock = self.__accept_new_connection()
             if self._is_closed:
                 break
-            thread = multiprocessing.Process(
+            thread = Process(
                 target=self.__handle_client_connection,
                 args=(
                     client_sock,
@@ -81,7 +80,7 @@ class Server:
         try:
             client_protocol.send_winners(winners)
         except Exception as e:
-                logging.error(f"action: receive_message | result: fail | error: {e}")
+            logging.error(f"action: receive_message | result: fail | error: {e}")
 
     def __handle_client_connection(
         self,
@@ -123,9 +122,8 @@ class Server:
             barrier_for_winners.wait()
             self.__send_winners_to_agency(id, protocol)
             protocol.finish_lottery()
-            exit(0)
         except BrokenBarrierError as _:
-            exit(0)
+            return
         except UnexpectedMessage as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
             protocol.send_failure_msg("Invalid message sent")
@@ -134,6 +132,11 @@ class Server:
         except Exception as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
             protocol.send_failure_msg("Internal server error")
+        finally:
+            logging.info("action: close_connection | result: in_progress")
+            client_protocols[id].close()
+            del client_protocols[id]
+            logging.info("action: close_connection | result: success")
 
     def __accept_new_connection(self):
         """
