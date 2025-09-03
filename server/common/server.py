@@ -74,12 +74,14 @@ class Server:
         """
         Sends winning bets to their respective agencies.
         """
+        winners = []
         for bet in load_bets():
             if has_won(bet) and bet.agency == agency_id:
-                try:
-                    client_protocol.send_winner(bet.document)
-                except Exception as e:
-                    logging.error(f"action: receive_message | result: fail | error: {e}")
+                winners.append(bet.document)
+        try:
+            client_protocol.send_winners(winners)
+        except Exception as e:
+                logging.error(f"action: receive_message | result: fail | error: {e}")
 
     def __handle_client_connection(
         self,

@@ -11,6 +11,7 @@ import (
 const (
 	SIZE_HEADER_BYTES = 1  // Size of the message header
 	SIZE_LENGTH_BYTES = 2  // Size for message length
+	SIZE_DNI_LENGTH_BYTES = 4 // Size for DNI length
 )
 
 // Header values for messages
@@ -43,6 +44,11 @@ func htons(value uint16) []byte {
 // ntohs converts a 2-byte slice in network byte order (big-endian) to a uint16 in host byte order.
 func ntohs(value []byte) uint16 {
 	return binary.BigEndian.Uint16(value)
+}
+
+// ntohl converts a 4-byte slice in network byte order (big-endian) to a uint32 in host byte order.
+func ntohl(value []byte) uint32 {
+	return binary.BigEndian.Uint32(value)
 }
 
 // NewProtocol initializes a new Protocol given a socket connection
@@ -193,29 +199,31 @@ func (p *Protocol) SendIdentification(agencyID string) error {
 }
 
 	
-func (p *Protocol) RecvWinner() (string, error) {
+func (p *Protocol) RecvWinner() ([]uint32, error) {
 	header := make([]byte, SIZE_HEADER_BYTES)
 	if err := p.readAll(header, SIZE_HEADER_BYTES); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if header[0] == FINISH_HEADER {
-		return "", nil
-	} else if header[0] != WINNER_HEADER {
-		return "", fmt.Errorf("invalid header")
+		return nil, nil
 	}
 
 	lengthBytes := make([]byte, SIZE_LENGTH_BYTES)
 	if err := p.readAll(lengthBytes, SIZE_LENGTH_BYTES); err != nil {
-		return "", err
+		return nil, err
 	}
 
 	length := ntohs(lengthBytes)
+	winners := make([]uint32, length)
 
-	winnerData := make([]byte, length)
-	if err := p.readAll(winnerData, int(length)); err != nil {
-		return "", err
+	for i := 0; i < int(length); i++ {
+		winnerData := make([]byte, SIZE_DNI_LENGTH_BYTES)
+		if err := p.readAll(winnerData, SIZE_DNI_LENGTH_BYTES); err != nil {
+			return nil, err
+		}
+		winners[i] = ntohl(winnerData)
 	}
 
-	return string(winnerData), nil
+	return winners, nil
 }
