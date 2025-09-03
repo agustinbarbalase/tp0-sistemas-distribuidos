@@ -43,7 +43,6 @@ class Protocol:
         Closes the socket connection.
         """
         if self._socket:
-            self._socket.shutdown(SHUT_RDWR)
             self._socket.close()
         self._socket = None
 
