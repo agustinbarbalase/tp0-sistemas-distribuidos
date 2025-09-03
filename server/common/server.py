@@ -19,6 +19,7 @@ class Server:
         self._clients = []
         self._barrier_for_winners = Barrier(amount_of_clients)
         self._store_lock = Lock()
+        self._client_protocols_lock = Lock()
         self._is_closed = False
 
         def handle_signal(signum, frame):
@@ -46,6 +47,7 @@ class Server:
                     self._client_protocols,
                     self._barrier_for_winners,
                     self._store_lock,
+                    self._client_protocols_lock,
                 ),
             )
             thread.start()
@@ -88,6 +90,7 @@ class Server:
         client_protocols,
         barrier_for_winners,
         store_lock,
+        client_protocols_lock
     ):
         """
         Read message from a specific client socket and closes the socket
@@ -98,7 +101,8 @@ class Server:
         try:
             protocol = Protocol(socket)
             id = protocol.wait_identification()
-            client_protocols[id] = protocol
+            with client_protocols_lock:
+                client_protocols[id] = protocol
 
             while True:
                 bets, errors = protocol.recv_batch_bets()
