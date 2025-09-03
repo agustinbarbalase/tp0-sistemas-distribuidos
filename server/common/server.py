@@ -36,7 +36,6 @@ class Server:
         Shutdown the client socket
         """
         if self._client_socket:
-            self._client_socket.shutdown(socket.SHUT_RDWR)
             self._client_socket.close()
         self._client_socket = None
 
