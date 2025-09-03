@@ -131,7 +131,7 @@ func (c *Client) StartClient() {
 			if c.isClosed {
 				return
 			}
-			log.Errorf("failed to send batch bet: %v", err)
+			// log.Errorf("failed to send batch bet: %v", err)
 		}
 	}
 
