@@ -26,7 +26,7 @@ type ClientConfig struct {
 // Client Entity that encapsulates how
 type Client struct {
 	config        ClientConfig
-	conn          net.Conn
+	protocol      *Protocol
 	signalChannel chan os.Signal
 	isClosed      bool
 }
@@ -56,7 +56,7 @@ func (c *Client) createClientSocket() error {
 			err,
 		)
 	}
-	c.conn = conn
+	c.protocol = NewProtocol(conn)
 	return nil
 }
 
@@ -64,8 +64,8 @@ func (c *Client) createClientSocket() error {
 func (c *Client) shutdown() {
 	log.Infof("action: shutdown | result: in_progress | client_id: %v", c.config.ID)
 	c.isClosed = true
-	if c.conn != nil {
-		c.conn.Close()
+	if c.protocol != nil {
+		c.protocol.Close()
 	}
 	log.Infof("action: shutdown | result: success | client_id: %v", c.config.ID)
 }
@@ -106,7 +106,7 @@ func (c *Client) sendAllBatches(p *Protocol) {
 	file, err := os.Open(c.config.DataFilePath)
 	if err != nil {
 		log.Errorf("Failed to open file: %v", err)
-		c.conn.Close()
+		c.protocol.Close()
 		return
 	}
 	defer file.Close()
@@ -114,7 +114,7 @@ func (c *Client) sendAllBatches(p *Protocol) {
 	scanner := bufio.NewScanner(file)
 	if scanner == nil {
 		log.Errorf("failed to create scanner for file")
-		c.conn.Close()
+		c.protocol.Close()
 		return
 	}
 
@@ -135,7 +135,7 @@ func (c *Client) sendAllBatches(p *Protocol) {
 
 	if err := p.SendFinishMsg(); err != nil {
 		if !c.isClosed {
-			c.conn.Close()
+			c.protocol.Close()
 			log.Errorf("failed to send finish message: %v", err)
 		}
 	}
@@ -157,19 +157,18 @@ func (c *Client) StartClient() {
 		return
 	}
 
-	protocol := NewProtocol(c.conn)
-	if err := protocol.SendIdentification(c.config.ID); err != nil {
+	if err := c.protocol.SendIdentification(c.config.ID); err != nil {
 		log.Errorf("Failed to send identification: %v", err)
-		c.conn.Close()
+		c.protocol.Close()
 		return
 	}
 
-	c.sendAllBatches(protocol)
-	winners := c.recvWinners(protocol)
+	c.sendAllBatches(c.protocol)
+	winners := c.recvWinners(c.protocol)
 
 	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %d", len(winners))
 
-	c.conn.Close()
+	c.protocol.Close()
 
 	log.Info("action: closed_connection | result: success")
 }
