@@ -26,7 +26,7 @@ type ClientConfig struct {
 // Client Entity that encapsulates how
 type Client struct {
 	config        ClientConfig
-	conn          net.Conn
+	protocol      *Protocol
 	signalChannel chan os.Signal
 	isClosed      bool
 }
@@ -56,7 +56,7 @@ func (c *Client) createClientSocket() error {
 			err,
 		)
 	}
-	c.conn = conn
+	c.protocol = NewProtocol(conn)
 	return nil
 }
 
@@ -64,9 +64,7 @@ func (c *Client) createClientSocket() error {
 func (c *Client) shutdown() {
 	log.Infof("action: shutdown | result: in_progress | client_id: %v", c.config.ID)
 	c.isClosed = true
-	if c.conn != nil {
-		c.conn.Close()
-	}
+	c.protocol.Close()
 	log.Infof("action: shutdown | result: success | client_id: %v", c.config.ID)
 }
 
@@ -82,12 +80,12 @@ func (c *Client) handleSignal() {
 // sendABatchBet sends a batch of bets to the server using the established protocol.
 // It transmits the batch, waits for an acknowledgment message, and logs the result.
 // Returns an error if sending the batch or receiving the acknowledgment fails.
-func (c *Client) sendABatchBet(protocol *Protocol, batch *Batch) error {
-	if err := protocol.SendBatchBet(c.config.ID, batch); err != nil {
+func (c *Client) sendABatchBet(batch *Batch) error {
+	if err := c.protocol.SendBatchBet(c.config.ID, batch); err != nil {
 		return err
 	}
 
-	status, numOfBets, err := protocol.RecvOKMsg()
+	status, numOfBets, err := c.protocol.RecvOKMsg()
 	if err != nil {
 		return err
 	}
@@ -102,19 +100,19 @@ func (c *Client) sendABatchBet(protocol *Protocol, batch *Batch) error {
 
 // sendAllBatches reads data from the file specified in the configuration,
 // splits the data into batches using a batch iterator, and sends each batch to the server.
-func (c *Client) sendAllBatches(p *Protocol) {
+func (c *Client) sendAllBatches() {
 	file, err := os.Open(c.config.DataFilePath)
 	if err != nil {
-		log.Errorf("Failed to open file: %v", err)
-		c.conn.Close()
+		log.Errorf("action: open_file | result: error | error: failed to open file: %v", err)
+		c.protocol.Close()
 		return
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	if scanner == nil {
-		log.Errorf("failed to create scanner for file")
-		c.conn.Close()
+		log.Errorf("action: read_file | result: error | error: failed to create scanner for file")
+		c.protocol.Close()
 		return
 	}
 
@@ -125,7 +123,7 @@ func (c *Client) sendAllBatches(p *Protocol) {
 		if !ok {
 			break
 		}
-		if err := c.sendABatchBet(p, batch); err != nil {
+		if err := c.sendABatchBet(batch); err != nil {
 			if c.isClosed {
 				return
 			}
@@ -133,17 +131,17 @@ func (c *Client) sendAllBatches(p *Protocol) {
 		}
 	}
 
-	if err := p.SendFinishMsg(); err != nil {
+	if err := c.protocol.SendFinishMsg(); err != nil {
 		if !c.isClosed {
-			c.conn.Close()
+			c.protocol.Close()
 			log.Errorf("failed to send finish message: %v", err)
 		}
 	}
 }
 
 // recvWinners receives winner bets from the provided Protocol.
-func (c *Client) recvWinners(p *Protocol) []uint32 {
-	winners, err := p.RecvWinner()
+func (c *Client) recvWinners() []uint32 {
+	winners, err := c.protocol.RecvWinner()
 	if err != nil {
 		log.Errorf("failed to receive winner: %v", err)
 	}
@@ -157,19 +155,18 @@ func (c *Client) StartClient() {
 		return
 	}
 
-	protocol := NewProtocol(c.conn)
-	if err := protocol.SendIdentification(c.config.ID); err != nil {
-		log.Errorf("Failed to send identification: %v", err)
-		c.conn.Close()
+	if err := c.protocol.SendIdentification(c.config.ID); err != nil {
+		log.Errorf("action: send_id | result: error | failed to send identification: %v", err)
+		c.protocol.Close()
 		return
 	}
 
-	c.sendAllBatches(protocol)
-	winners := c.recvWinners(protocol)
+	c.sendAllBatches()
+	winners := c.recvWinners()
 
 	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %d", len(winners))
 
-	c.conn.Close()
+	c.protocol.Close()
 
 	log.Info("action: closed_connection | result: success")
 }
