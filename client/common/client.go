@@ -129,7 +129,6 @@ func (c *Client) sendAllBatches(p *Protocol) {
 			if c.isClosed {
 				return
 			}
-			// log.Errorf("failed to send batch bet: %v", err)
 		}
 	}
 
