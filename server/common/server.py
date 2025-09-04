@@ -39,10 +39,7 @@ class Server:
         """
         logging.info('action: shutdown | result: in_progress')
         self._is_closed = True
-        if self._client_protocol:
-            self._client_protocol.close()
-        self._client_protocol = None
-        self._server_socket.shutdown(socket.SHUT_RDWR)
+        self._client_protocol.close()
         self._server_socket.close()
         logging.info('action: shutdown | result: success')
 
