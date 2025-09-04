@@ -112,12 +112,6 @@ func (p *Protocol) writeAll(msg []byte, totalLength int) error {
 //
 // Returns an error if any part of the message fails to send.
 func (p *Protocol) SendBet(agencyID string, bet *Bet) error {
-	// Send header
-	// messageHeader := []byte{BET_HEADER}
-	// if err := p.writeAll(messageHeader, SIZE_HEADER_BYTES); err != nil {
-	// 	return err
-	// }
-
 	betSerialize := bet.serializeBet(agencyID)
 	betSerializeLength := len(betSerialize)
 
