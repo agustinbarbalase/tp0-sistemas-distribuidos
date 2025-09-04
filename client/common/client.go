@@ -105,7 +105,7 @@ func (c *Client) sendABatchBet(protocol *Protocol, batch *Batch) error {
 func (c *Client) sendAllBatches(p *Protocol) {
 	file, err := os.Open(c.config.DataFilePath)
 	if err != nil {
-		log.Errorf("Failed to open file: %v", err)
+		log.Errorf("action: open_file | result: error | error: failed to open file: %v", err)
 		c.protocol.Close()
 		return
 	}
@@ -113,7 +113,7 @@ func (c *Client) sendAllBatches(p *Protocol) {
 
 	scanner := bufio.NewScanner(file)
 	if scanner == nil {
-		log.Errorf("failed to create scanner for file")
+		log.Errorf("action: read_file | result: error | error: failed to create scanner for file")
 		c.protocol.Close()
 		return
 	}
@@ -157,7 +157,7 @@ func (c *Client) StartClient() {
 	}
 
 	if err := c.protocol.SendIdentification(c.config.ID); err != nil {
-		log.Errorf("Failed to send identification: %v", err)
+		log.Errorf("action: send_id | result: error | failed to send identification: %v", err)
 		c.protocol.Close()
 		return
 	}
