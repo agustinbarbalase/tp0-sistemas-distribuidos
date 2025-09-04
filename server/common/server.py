@@ -38,7 +38,7 @@ class Server:
             if self._is_closed or client_sock is None:
                 break
             protocol = Protocol(client_sock)
-            thread = Process(
+            process = Process(
                 target=self.__handle_client_connection,
                 args=(
                     protocol,
@@ -46,11 +46,11 @@ class Server:
                     self._store_lock,
                 ),
             )
-            thread.start()
-            thread.daemon = True
-            self._clients.append(thread)
+            process.start()
+            self._clients.append(process)
 
         for clients in self._clients:
+            clients.terminate()
             clients.join()
 
     def __shutdown(self):
