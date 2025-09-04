@@ -148,4 +148,5 @@ func (c *Client) StartClient() {
 
 	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", bet.Document, bet.Number)
 	c.protocol.Close()
+	log.Info("action: closed_connection | result: success")
 }
