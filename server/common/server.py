@@ -92,7 +92,10 @@ class Server:
         If a problem arises in the communication with the client, the
         client socket will also be closed
         """
-        signal.signal(signal.SIGTERM, lambda s, f: protocol.close())
+        def handle_signal(signum, frame):
+            protocol.close()
+
+        signal.signal(signal.SIGTERM, handle_signal)
 
         try:
             id = protocol.wait_identification()
