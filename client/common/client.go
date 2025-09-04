@@ -108,14 +108,15 @@ func (c *Client) StartClient() {
 
 	file, err := os.Open(c.config.DataFilePath)
 	if err != nil {
-		log.Errorf("Failed to open file: %v", err)
+		log.Errorf("action: open_file | result: error | error: failed to open file: %v", err)
 		c.protocol.Close()
+		return
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	if scanner == nil {
-		log.Errorf("failed to create scanner for file")
+		log.Errorf("action: read_file | result: error | error: failed to create scanner for file")
 		c.protocol.Close()
 		return
 	}
@@ -137,4 +138,6 @@ func (c *Client) StartClient() {
 	c.protocol.SendFinishMsg()
 	
 	c.protocol.Close()
+
+	log.Info("action: closed_connection | result: success")
 }
