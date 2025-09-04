@@ -14,12 +14,9 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(("", port))
         self._server_socket.listen(listen_backlog)
-        self._amount_of_clients = amount_of_clients
-        self._client_protocols = {}
         self._clients = []
         self._barrier_for_winners = Barrier(amount_of_clients)
         self._store_lock = Lock()
-        self._client_protocols_lock = Lock()
         self._is_closed = False
 
         def handle_signal(signum, frame):
@@ -38,26 +35,23 @@ class Server:
 
         while not self._is_closed:
             client_sock = self.__accept_new_connection()
-            if self._is_closed:
+            if self._is_closed or client_sock is None:
                 break
+            protocol = Protocol(client_sock)
             thread = Process(
                 target=self.__handle_client_connection,
                 args=(
-                    client_sock,
-                    self._client_protocols,
+                    protocol,
                     self._barrier_for_winners,
                     self._store_lock,
-                    self._client_protocols_lock,
                 ),
             )
             thread.start()
+            thread.daemon = True
             self._clients.append(thread)
 
-        for protocol in self._client_protocols.values():
-            self._barrier_for_winners.abort()
-            protocol = Protocol(client_sock)
-            protocol.finish_lottery()
-            protocol.close()
+        for clients in self._clients:
+            clients.join()
 
     def __shutdown(self):
         """
@@ -67,8 +61,10 @@ class Server:
         """
         logging.info("action: shutdown | result: in_progress")
         self._is_closed = True
-        self._server_socket.shutdown(socket.SHUT_RDWR)
-        self._server_socket.close()
+        try:
+            self._server_socket.close()
+        except Exception as e:
+            logging.error(f"action: shutdown | result: fail | error: {e}")
         logging.info("action: shutdown | result: success")
 
     def __send_winners_to_agency(self, agency_id, client_protocol):
@@ -86,11 +82,9 @@ class Server:
 
     def __handle_client_connection(
         self,
-        socket,
-        client_protocols,
+        protocol,
         barrier_for_winners,
         store_lock,
-        client_protocols_lock
     ):
         """
         Read message from a specific client socket and closes the socket
@@ -98,11 +92,10 @@ class Server:
         If a problem arises in the communication with the client, the
         client socket will also be closed
         """
+        signal.signal(signal.SIGTERM, lambda s, f: protocol.close())
+
         try:
-            protocol = Protocol(socket)
             id = protocol.wait_identification()
-            with client_protocols_lock:
-                client_protocols[id] = protocol
 
             while True:
                 bets, errors = protocol.recv_batch_bets()
@@ -125,21 +118,17 @@ class Server:
 
             barrier_for_winners.wait()
             self.__send_winners_to_agency(id, protocol)
-            protocol.finish_lottery()
         except BrokenBarrierError as _:
             return
         except UnexpectedMessage as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
-            protocol.send_failure_msg("Invalid message sent")
         except ConnectionClose as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
         except Exception as e:
             logging.error(f"action: receive_message | result: fail | error: {e}")
-            protocol.send_failure_msg("Internal server error")
         finally:
             logging.info("action: close_connection | result: in_progress")
-            client_protocols[id].close()
-            del client_protocols[id]
+            protocol.close()
             logging.info("action: close_connection | result: success")
 
     def __accept_new_connection(self):
