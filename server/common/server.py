@@ -34,7 +34,11 @@ class Server:
         """
 
         while not self._is_closed:
+            # Check for dead clients and remove them from the list
+            self._clients = [p for p in self._clients if p.is_alive()]
+            
             client_sock = self.__accept_new_connection()
+            
             if self._is_closed or client_sock is None:
                 break
             protocol = Protocol(client_sock)
